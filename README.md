@@ -123,7 +123,6 @@ The version lives in `public/manifest.json`, and `npm run release` bumps it.
 ## Ideas
 
 -   Optional LLM scoring (your own API key) with a short "why this fits or doesn't" note
--   Save and hide buttons in Telegram that sync with the report
 
 ## License
 
