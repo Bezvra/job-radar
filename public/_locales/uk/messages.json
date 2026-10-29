@@ -1,0 +1,7 @@
+{
+    "name": { "message": "IT Job Radar" },
+    "description": {
+        "message": "Збирає вакансії з Djinni та DOU, оцінює їх під твій профіль і показує, куди варто подаватись."
+    },
+    "actionTitle": { "message": "IT Job Radar — оцінити вакансію на цій сторінці" }
+}

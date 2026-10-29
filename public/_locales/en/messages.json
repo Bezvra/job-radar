@@ -1,0 +1,7 @@
+{
+    "name": { "message": "IT Job Radar" },
+    "description": {
+        "message": "Collects jobs from Djinni and DOU, scores them against your profile and shows where it's worth applying."
+    },
+    "actionTitle": { "message": "IT Job Radar: rate the job on this page" }
+}

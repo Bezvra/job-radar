@@ -1,0 +1,5 @@
+node_modules/
+dist/
+extensions/
+*.zip
+.DS_Store
