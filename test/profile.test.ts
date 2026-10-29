@@ -175,6 +175,40 @@ test('office means an office: not "Officer", back-office or home office; old sav
     assert.ok(labels('Hybrid, Kyiv').includes('Офіс/гібрид не в місті Одеса'))
     assert.ok(labels('Гібрид, Одеса,\nофіс на Дерибасівській').includes('Гібрид: Одеса'))
 
+    // Remote for some days of the week is hybrid, not remote
+    for (const desc of [
+        '2 days remote per week, Одеса',
+        'Remote 2 days a week, office in Одеса',
+        '2 дні на тиждень віддалено, офіс в Одесі',
+        'Віддалено 2 дні, Одеса',
+        '3 days in the office, Одеса',
+        'Partially remote, Одеса',
+    ]) {
+        const got = labels(desc)
+        assert.ok(!got.includes('Remote') && got.includes('Гібрид: Одеса'), `${desc}: ${got.join(', ')}`)
+    }
+    assert.ok(labels('2 days remote, office in Kyiv').includes('Офіс/гібрид не в місті Одеса'), 'no remote option')
+    for (const desc of ['Remote', 'Fully remote, 5 days a week', 'Повністю віддалено', 'Remote-first team of 12'])
+        assert.ok(labels(desc).includes('Remote'), desc)
+
+    const oldRemote = [
+        { pattern: 'remote|віддален|удален|дистанційн', weight: 15, label: 'Remote' },
+        {
+            pattern: 'office|офіс|офис|hybrid|гібрид|гибрид|on-?site',
+            weight: -20,
+            label: 'Офіс/гібрид не в місті Одеса',
+            unless: 'remote|віддален|удален|дистанційн|одес',
+        },
+    ]
+    const upgradedRemote = upgradeRules(oldRemote)!
+    const partTime = scoreJob('Engineer', '2 days remote, office in Kyiv', upgradedRemote).reasons
+    assert.deepEqual(
+        partTime.map((r) => r.weight),
+        [-20],
+        'saved rules learn it too: no Remote bonus, and no remote option to cancel the office elsewhere',
+    )
+    assert.equal(upgradeRules(upgradedRemote), null)
+
     const old = [
         { pattern: 'office|офіс|офис|on-?site', weight: 5, label: 'Офіс' },
         { pattern: 'office|офіс|офис|hybrid|гібрид|гибрид|on-?site', weight: -20, label: 'Офіс/гібрид не в Одесі' },

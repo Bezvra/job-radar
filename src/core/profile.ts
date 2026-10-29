@@ -71,10 +71,23 @@ export const AI_TOOLS_PATTERN =
     'ai (tools?|assistants?|agents?)( and agents)? (in|for|into|as) (your |our |the |daily |day-to-day |a real part of )*(development|coding|workflow|engineering|work)|' +
     'coding (agents?|assistants?)|agentic (coding|development))\\b'
 
-const REMOTE_PATTERN = 'remote|віддален|удален|дистанційн'
+const DAYS = '\\d\\s*(days?|дн[а-яіїєґ]*)'
+const PER_WEEK = '(\\s*(a|per|на|в)\\s+(week|тиждень))?'
+/**
+ * Remote for part of the week is hybrid: "2 days remote", "remote 2 days a week", "2 дні на тиждень віддалено",
+ * "3 days in the office", "partially remote"
+ */
+const PART_REMOTE =
+    `${DAYS}${PER_WEEK}\\s*(remote|віддален|удален|from home|вдома|з дому)|` +
+    `(remote|віддален[а-яіїєґ]*|удален[а-яіїєґ]*|wfh|work from home)\\s*${DAYS}|` +
+    `${DAYS}${PER_WEEK}\\s*(in|at|from|в|у|з)\\s+(the\\s+)?(office|офіс)|partial(ly)? remote|частково віддален`
+/** Remote, unless it's only some days of the week (PART_REMOTE) */
+const REMOTE_PATTERN =
+    `(?<!(${DAYS}${PER_WEEK}\\s*|partial(ly)?\\s+|частково\\s+))(remote|віддален|удален|дистанційн)` +
+    `(?![a-zа-яіїєґ]*\\s*${DAYS})`
 /** A whole word, so "Chief Operating Officer" or "official" aren't an office; back-office systems and home office aren't either */
 const OFFICE_WORD = '(?<!back[- ]|front[- ]|home[- ])\\boffices?\\b|офіс|офис|on-?site'
-const HYBRID_WORD = 'hybrid|гібрид|гибрид'
+const HYBRID_WORD = `hybrid|гібрид|гибрид|${PART_REMOTE}`
 const OFFICE_PATTERN = `${OFFICE_WORD}|${HYBRID_WORD}`
 /**
  * An office or hybrid bonus counts only where the user lives: the text must name their city too (an office in Kyiv is
@@ -129,21 +142,37 @@ const PATTERN_FIXES: Record<string, string> = {
 }
 
 /**
+ * Generated fragments that were changed since → their new versions, replaced inside saved patterns and `unless` (they
+ * are combined with a city or other words there). Each new version contains the old one, so it's skipped once applied
+ */
+const FRAGMENT_FIXES: [string, string][] = [
+    ['remote|віддален|удален|дистанційн', REMOTE_PATTERN],
+    ['hybrid|гібрид|гибрид', HYBRID_WORD],
+]
+
+const fixFragments = (s: string) =>
+    FRAGMENT_FIXES.reduce((acc, [old, next]) => (acc.includes(next) ? acc : acc.split(old).join(next)), s)
+
+/**
  * Saved rules brought up to date; null when nothing changed. Generated patterns that were fixed since, labels from
  * before labelKey, and office/hybrid bonuses from before they were tied to the city. Edited patterns and labels stay
  */
 export function upgradeRules(rules: Rule[]): Rule[] | null {
     let changed = false
     const keyed = rules.map((r) => {
+        // Whole patterns first: their keys hold the old fragments
+        const pattern = fixFragments(PATTERN_FIXES[r.pattern] ?? r.pattern)
+        const fixed = { ...r, pattern, ...(r.unless && { unless: fixFragments(r.unless) }) }
         const labelKey = r.labelKey ?? legacyLabelKey(r.label)
-        if (!labelKey || r.labelKey) return r
+        if (fixed.pattern !== r.pattern || fixed.unless !== r.unless) changed = true
+        if (!labelKey || r.labelKey) return fixed
         changed = true
-        return { ...r, labelKey }
+        return { ...fixed, labelKey }
     })
     // The city comes from the «Місто: …» rule
     const city = keyed.find((r) => r.labelKey?.id === 'city' && r.weight > 0)
     const upgraded = keyed.map((r) => {
-        const pattern = PATTERN_FIXES[r.pattern] ?? r.pattern
+        const pattern = r.pattern
         const bonus = r.weight > 0 && (pattern === OFFICE_WORD || pattern === HYBRID_WORD)
         if (bonus && city) {
             changed = true

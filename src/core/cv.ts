@@ -94,6 +94,9 @@ export function experienceYears(text: string, now = new Date()): number {
 }
 
 /** Proportional to relevance, 1–20: 20 is the weight of a core skill in the built-in rules */
+/** Relevance factor for a tech the CV names only once */
+const SINGLE_MENTION = 0.5
+
 export const suggestWeight = (relevance: number) => Math.max(1, Math.round(relevance / 5))
 
 /** Finds known technologies in a CV and rates how relevant each one is for the candidate today. */
@@ -122,7 +125,9 @@ export function analyzeCv(text: string, now = new Date()): TechFinding[] {
             recency = 0.4
             frequency = 0
         }
-        const relevance = Math.round(100 * (0.6 * recency + 0.4 * frequency))
+        // Named once in the whole CV ("also touched Kafka" in the latest job): a side tool rather than the stack
+        const once = (text.match(cvRegex(tech, 'g'))?.length ?? 0) <= 1
+        const relevance = Math.round(100 * (0.6 * recency + 0.4 * frequency) * (once ? SINGLE_MENTION : 1))
         findings.push({
             tech,
             relevance,

@@ -32,11 +32,26 @@ test('CV analysis rates recent and frequent techs higher', () => {
     assert.ok(f.graphql.relevance > f.angular.relevance, 'used more recently')
     // Recency by position: latest job 1, previous 2/3; React is in both of the 2 latest of 3 jobs
     assert.equal(f.react.relevance, 87)
-    assert.equal(f.graphql.relevance, 53, 'previous job only')
+    assert.equal(f.graphql.relevance, 27, 'previous job only (53), and named only once there: halved')
     assert.equal(f.react.weight, 17)
     assert.equal(f.docker.lastUsed, null, 'only in the skills list')
     assert.ok(!f.reactnative && !f.java, 'no React Native or Java false positives')
     assert.ok(Math.round(experienceYears(CV, NOW)) === 11, 'experience counted from the first job, not education')
+})
+
+test('CV analysis: a tech named once counts half', () => {
+    const cv = (job: string) =>
+        Object.fromEntries(
+            analyzeCv(`Acme | 2022 – 2026\nReact, TypeScript. ${job}\n\nBeta | 2019 – 2022\nReact`, NOW).map((x) => [
+                x.tech.id,
+                x.relevance,
+            ]),
+        )
+    const once = cv('Also set up a Kafka consumer.')
+    const twice = cv('Kafka streams; Kafka Connect.')
+    assert.equal(twice.kafka, 80, 'latest of 2 jobs: 0.6 + 0.4 × 1/2')
+    assert.equal(once.kafka, 40)
+    assert.equal(once.react, 100, 'the stack itself is named in every job')
 })
 
 test('tech dictionary patterns are valid and avoid known false positives', () => {
