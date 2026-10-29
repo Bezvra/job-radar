@@ -2,11 +2,12 @@ import { render } from 'preact'
 import { useEffect, useState } from 'preact/hooks'
 import { makeBackup, readBackup } from '../core/backup'
 import { MAX_AGE_DAYS } from '../core/collect'
+import { diagnostics } from '../core/diagnostics'
 import { DEFAULT_SETTINGS, MAX_SOURCES, MIN_INTERVAL_HOURS } from '../core/defaults'
 import { toFeedUrl } from '../core/feeds'
 import type { Rule, Settings } from '../core/types'
 import { LOCALES, locale, ruleLabel, t } from '../i18n'
-import { getJobs, getSettings, saveSettings } from '../services/storage'
+import { getJobs, getLastRun, getSettings, saveSettings } from '../services/storage'
 import { ruleProblem, type RuleRow, RulesEditor } from './components/RulesEditor'
 import { sourceProblem, type SourceRow, SourcesEditor } from './components/SourcesEditor'
 import { applyLocale } from './utils'
@@ -124,6 +125,7 @@ function App() {
     const [tab, setTab] = useState<Tab>(initialTab)
     const [msg, setMsg] = useState('')
     const [tgMsg, setTgMsg] = useState('')
+    const [diagMsg, setDiagMsg] = useState('')
 
     const openTab = (t: Tab) => {
         setTab(t)
@@ -205,6 +207,30 @@ function App() {
         link.download = `it-job-radar-${backup.exportedAt.slice(0, 10)}.json`
         link.click()
         URL.revokeObjectURL(link.href)
+    }
+
+    const copyDiagnostics = async () => {
+        const [savedSettings, jobs, lastRun, alarm] = await Promise.all([
+            getSettings(),
+            getJobs(),
+            getLastRun(),
+            chrome.alarms.get('job-radar-refresh'),
+        ])
+        const text = diagnostics({
+            version: chrome.runtime.getManifest().version,
+            userAgent: navigator.userAgent,
+            browserLanguage: navigator.language,
+            settings: savedSettings,
+            jobs,
+            lastRun,
+            alarm: alarm ?? null,
+        })
+        try {
+            await navigator.clipboard.writeText(text)
+            setDiagMsg(t.options.copied)
+        } catch (e) {
+            setDiagMsg(errorText(e))
+        }
     }
 
     const importFile = async (file: File | undefined) => {
@@ -346,6 +372,15 @@ function App() {
                                     }}
                                 />
                             </label>
+                        </div>
+                    </fieldset>
+
+                    <fieldset>
+                        <legend>{t.options.diagnostics}</legend>
+                        <div class="hint">{t.options.diagnosticsHint}</div>
+                        <div class="actions" style={{ marginTop: 8 }}>
+                            <button onClick={() => void copyDiagnostics()}>{t.options.copyDiagnostics}</button>
+                            <span class="hint">{diagMsg}</span>
                         </div>
                     </fieldset>
                 </>

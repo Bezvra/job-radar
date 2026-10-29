@@ -139,6 +139,11 @@ export const en: Messages = {
         importConfirm: (jobs: number) =>
             `Replace the current settings with the ones from the file and add the saved jobs (${jobs})?`,
         badBackup: 'This isn’t an IT Job Radar backup file.',
+        diagnostics: 'Diagnostics',
+        diagnosticsHint:
+            'If something isn’t working, copy the diagnostics into your bug report. They include the version, sources, schedule, the last refresh with its errors and job counts. No Telegram token, rules or job texts.',
+        copyDiagnostics: 'Copy diagnostics',
+        copied: 'Copied ✓',
         tgSent: 'Sent, check Telegram ✓',
         sourcesTitle: 'Sources (RSS)',
         sourcesHint: (code: Wrap) => [
