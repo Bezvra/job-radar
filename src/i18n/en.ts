@@ -110,6 +110,11 @@ export const en: Messages = {
         connected: 'IT Job Radar is connected ✅',
     },
 
+    feedback: {
+        bug: 'Report a problem',
+        idea: 'Suggest an idea',
+    },
+
     options: {
         title: 'Settings',
         back: '← Back to the report',
@@ -147,9 +152,9 @@ export const en: Messages = {
         importConfirm: (jobs: number) =>
             `Replace the current settings with the ones from the file and add the saved jobs (${jobs})?`,
         badBackup: 'This isn’t an IT Job Radar backup file.',
-        diagnostics: 'Diagnostics',
+        diagnostics: 'Problem or idea',
         diagnosticsHint:
-            'If something isn’t working, copy the diagnostics into your bug report. They include the version, sources, schedule, the last refresh with its errors and job counts. No Telegram token, rules or job texts.',
+            'Something not working, or an idea? Write on GitHub. A bug report gets the diagnostics filled in: the version, sources, schedule, the last refresh with its errors and job counts. No Telegram token, rules or job texts.',
         copyDiagnostics: 'Copy diagnostics',
         copied: 'Copied ✓',
         tgSent: 'Sent, check Telegram ✓',

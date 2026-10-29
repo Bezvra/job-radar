@@ -1,0 +1,22 @@
+name: Проблема / Bug
+description: Щось не працює або працює не так / Something doesn't work as expected
+labels: [bug]
+body:
+    - type: textarea
+      id: what
+      attributes:
+          label: Що сталося / What happened
+          description: Що ти робив, що очікував і що вийшло натомість / What you did, what you expected, what happened instead
+      validations:
+          required: true
+    - type: input
+      id: page
+      attributes:
+          label: Посилання на вакансію, якщо проблема з нею / Job link, if it's about one
+          placeholder: https://djinni.co/jobs/...
+    - type: textarea
+      id: diagnostics
+      attributes:
+          label: Діагностика / Diagnostics
+          description: Налаштування → Загальні → «Скопіювати діагностику». Без токена Telegram, правил і текстів вакансій / Settings → General → "Copy diagnostics". No Telegram token, rules or job texts
+          render: text

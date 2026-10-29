@@ -2,15 +2,15 @@ import { render } from 'preact'
 import { useEffect, useState } from 'preact/hooks'
 import { makeBackup, readBackup } from '../core/backup'
 import { MAX_AGE_DAYS } from '../core/collect'
-import { diagnostics } from '../core/diagnostics'
 import { DEFAULT_SETTINGS, MAX_SOURCES, MIN_INTERVAL_HOURS } from '../core/defaults'
 import { toFeedUrl } from '../core/feeds'
 import type { Rule, Settings } from '../core/types'
 import { locale, ruleLabel, t } from '../i18n'
-import { getJobs, getLastRun, getSettings, saveSettings } from '../services/storage'
+import { getJobs, getSettings, saveSettings } from '../services/storage'
 import { LocaleSelect } from './components/LocaleSelect'
 import { ruleProblem, type RuleRow, RulesEditor } from './components/RulesEditor'
 import { sourceProblem, type SourceRow, SourcesEditor } from './components/SourcesEditor'
+import { collectDiagnostics, openIssue } from './feedback'
 import { applyLocale } from './utils'
 
 let lastKey = 0
@@ -211,21 +211,7 @@ function App() {
     }
 
     const copyDiagnostics = async () => {
-        const [savedSettings, jobs, lastRun, alarm] = await Promise.all([
-            getSettings(),
-            getJobs(),
-            getLastRun(),
-            chrome.alarms.get('job-radar-refresh'),
-        ])
-        const text = diagnostics({
-            version: chrome.runtime.getManifest().version,
-            userAgent: navigator.userAgent,
-            browserLanguage: navigator.language,
-            settings: savedSettings,
-            jobs,
-            lastRun,
-            alarm: alarm ?? null,
-        })
+        const text = await collectDiagnostics()
         try {
             await navigator.clipboard.writeText(text)
             setDiagMsg(t.options.copied)
@@ -369,6 +355,8 @@ function App() {
                         <legend>{t.options.diagnostics}</legend>
                         <div class="hint">{t.options.diagnosticsHint}</div>
                         <div class="actions" style={{ marginTop: 8 }}>
+                            <button onClick={() => void openIssue('bug')}>{t.feedback.bug}</button>
+                            <button onClick={() => void openIssue('idea')}>{t.feedback.idea}</button>
                             <button onClick={() => void copyDiagnostics()}>{t.options.copyDiagnostics}</button>
                             <span class="hint">{diagMsg}</span>
                         </div>

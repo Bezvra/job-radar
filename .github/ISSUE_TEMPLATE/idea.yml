@@ -1,0 +1,11 @@
+name: Ідея / Idea
+description: Що додати чи змінити / Something to add or change
+labels: [idea]
+body:
+    - type: textarea
+      id: idea
+      attributes:
+          label: Ідея / Idea
+          description: Що хочеш і навіщо це тобі / What you'd like and why it helps you
+      validations:
+          required: true

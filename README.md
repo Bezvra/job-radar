@@ -19,7 +19,9 @@ The CV is read in the browser and not stored; settings and jobs stay in this bro
 
 **Settings → General → Backup** saves your settings and the jobs you saved or applied to into a JSON file, and restores them on another computer or after reinstalling. The file contains your Telegram bot token, so keep it to yourself.
 
-If something isn't working, **Settings → General → Copy diagnostics** puts a short technical report (version, sources, schedule, the last refresh and its errors) on the clipboard for a bug report. It doesn't include your Telegram token, rules or jobs.
+## Feedback
+
+Something not working, or an idea? Open an [issue](https://github.com/Bezvra/job-radar/issues/new/choose), or use **Повідомити про проблему** (Report a problem) / **Запропонувати ідею** (Suggest an idea) at the bottom of the report or on the settings page. A problem report opens with the diagnostics filled in: a short technical report (version, sources, schedule, the last refresh and its errors, job counts) without your Telegram token, rules or jobs. **Settings → General → Copy diagnostics** puts the same report on the clipboard.
 
 To keep the requests polite (they come from your IP), at most 10 feeds can be enabled, and the refresh interval is at least 2 hours.
 

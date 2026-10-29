@@ -1,4 +1,6 @@
 import { render } from 'preact'
+import { REPO_URL } from '../core/feedback'
+import { openIssue } from './feedback'
 import { useState } from 'preact/hooks'
 import { isOpenToApply } from '../core/collect'
 import type { Job, JobStatus, Settings } from '../core/types'
@@ -182,6 +184,17 @@ function App() {
                     <div class="empty">{all.length ? t.report.empty : t.report.firstRun}</div>
                 )}
             </main>
+            <footer class="page-foot">
+                <button class="link" onClick={() => void openIssue('bug')}>
+                    {t.feedback.bug}
+                </button>
+                <button class="link" onClick={() => void openIssue('idea')}>
+                    {t.feedback.idea}
+                </button>
+                <a href={REPO_URL} target="_blank" rel="noopener">
+                    GitHub
+                </a>
+            </footer>
         </div>
     )
 }

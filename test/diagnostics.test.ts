@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict'
 import { test } from 'node:test'
 import { diagnostics } from '../src/core/diagnostics'
+import { issueUrl } from '../src/core/feedback'
 import type { Job } from '../src/core/types'
 import { NOW, SETTINGS } from './fixtures'
 
@@ -40,4 +41,13 @@ test('diagnostics: what a bug report needs, and nothing personal', () => {
         assert.ok(text.includes(expected), expected)
     for (const secret of ['SECRET', '987654321', 'Secret Project', 'confidential', SETTINGS.rules[0].pattern])
         assert.ok(!text.includes(secret), secret)
+})
+
+test('feedback: a bug report opens the issue form with the diagnostics filled in', () => {
+    const url = new URL(issueUrl('bug', 'IT Job Radar 0.4.6\nLast run: never'))
+    assert.equal(url.origin + url.pathname, 'https://github.com/Bezvra/job-radar/issues/new')
+    assert.equal(url.searchParams.get('template'), 'bug.yml')
+    assert.equal(url.searchParams.get('diagnostics'), 'IT Job Radar 0.4.6\nLast run: never')
+    assert.equal(new URL(issueUrl('bug', 'x'.repeat(10_000))).searchParams.get('diagnostics')!.length, 4000)
+    assert.equal(new URL(issueUrl('idea')).searchParams.get('diagnostics'), null)
 })
