@@ -131,6 +131,14 @@ export const en: Messages = {
         tgNoToken: 'Paste the bot token first.',
         tgNoChat: 'No messages found. Send the bot /start and try again.',
         tgFound: (name: string, id: string) => `Found: ${name} (${id}). Click “Save”.`,
+        backup: 'Backup',
+        backupHint:
+            'A file with all your settings (rules, sources, Telegram) and the jobs you saved or applied to, for another computer or after reinstalling. It contains your Telegram bot token, so don’t share it.',
+        exportFile: 'Save to file',
+        importFile: 'Restore from file',
+        importConfirm: (jobs: number) =>
+            `Replace the current settings with the ones from the file and add the saved jobs (${jobs})?`,
+        badBackup: 'This isn’t an IT Job Radar backup file.',
         tgSent: 'Sent, check Telegram ✓',
         sourcesTitle: 'Sources (RSS)',
         sourcesHint: (code: Wrap) => [

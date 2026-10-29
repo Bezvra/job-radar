@@ -1,11 +1,12 @@
 import { render } from 'preact'
 import { useEffect, useState } from 'preact/hooks'
+import { makeBackup, readBackup } from '../core/backup'
 import { MAX_AGE_DAYS } from '../core/collect'
 import { DEFAULT_SETTINGS, MAX_SOURCES, MIN_INTERVAL_HOURS } from '../core/defaults'
 import { toFeedUrl } from '../core/feeds'
 import type { Rule, Settings } from '../core/types'
 import { LOCALES, locale, ruleLabel, t } from '../i18n'
-import { getSettings, saveSettings } from '../services/storage'
+import { getJobs, getSettings, saveSettings } from '../services/storage'
 import { ruleProblem, type RuleRow, RulesEditor } from './components/RulesEditor'
 import { sourceProblem, type SourceRow, SourcesEditor } from './components/SourcesEditor'
 import { applyLocale } from './utils'
@@ -197,6 +198,24 @@ function App() {
         setTgMsg(r?.ok ? t.options.tgSent : t.common.error(r?.error))
     }
 
+    const exportFile = async () => {
+        const backup = makeBackup(await getSettings(), await getJobs(), chrome.runtime.getManifest().version)
+        const link = document.createElement('a')
+        link.href = URL.createObjectURL(new Blob([JSON.stringify(backup, null, 1)], { type: 'application/json' }))
+        link.download = `it-job-radar-${backup.exportedAt.slice(0, 10)}.json`
+        link.click()
+        URL.revokeObjectURL(link.href)
+    }
+
+    const importFile = async (file: File | undefined) => {
+        if (!file) return
+        const backup = readBackup(await file.text())
+        if (!backup) return setMsg(t.common.error(t.options.badBackup))
+        if (!confirm(t.options.importConfirm(backup.jobs.length))) return
+        await chrome.runtime.sendMessage({ type: 'import', ...backup })
+        location.reload() // the draft, and maybe the language, come from the imported settings
+    }
+
     return (
         <div class="wrap">
             <header>
@@ -308,6 +327,26 @@ function App() {
                             <button onClick={testTelegram}>{t.options.tgTest}</button>
                         </div>
                         <div class="hint">{tgMsg}</div>
+                    </fieldset>
+
+                    <fieldset>
+                        <legend>{t.options.backup}</legend>
+                        <div class="hint">{t.options.backupHint}</div>
+                        <div class="actions" style={{ marginTop: 8 }}>
+                            <button onClick={() => void exportFile()}>{t.options.exportFile}</button>
+                            <label class="btn">
+                                {t.options.importFile}
+                                <input
+                                    type="file"
+                                    accept=".json,application/json"
+                                    hidden
+                                    onChange={(e) => {
+                                        void importFile(e.currentTarget.files?.[0])
+                                        e.currentTarget.value = '' // the same file can be picked again
+                                    }}
+                                />
+                            </label>
+                        </div>
                     </fieldset>
                 </>
             )}

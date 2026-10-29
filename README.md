@@ -17,6 +17,8 @@ The manifest has a fixed `key`, so every build has the same extension ID (`ncinc
 
 The CV is read in the browser and not stored; settings and jobs stay in this browser's local storage; requests go only to djinni.co, jobs.dou.ua and, if you connect a bot, api.telegram.org. See [PRIVACY.md](PRIVACY.md).
 
+**Settings → General → Backup** saves your settings and the jobs you saved or applied to into a JSON file, and restores them on another computer or after reinstalling. The file contains your Telegram bot token, so keep it to yourself.
+
 To keep the requests polite (they come from your IP), at most 10 feeds can be enabled, and the refresh interval is at least 2 hours.
 
 ## Telegram

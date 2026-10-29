@@ -9,6 +9,7 @@ import {
     rescoreAll,
     resetJobs,
 } from './core/collect'
+import { importJobs } from './core/backup'
 import { MAX_SOURCES, MIN_INTERVAL_HOURS } from './core/defaults'
 import { parseJobPosting } from './core/jobPage'
 import { upgradeRules } from './core/profile'
@@ -251,6 +252,27 @@ chrome.runtime.onMessage.addListener((msg, _sender, reply) => {
                 for (const id of ids) if (jobs[id]) jobs[id].status = status
                 await saveJobs(jobs)
             })
+            await updateBadge()
+            reply({ ok: true })
+        })()
+        return true
+    }
+    // A backup file from the options page: its settings replace the current ones, its saved and applied jobs are added
+    if (msg?.type === 'import') {
+        ;(async () => {
+            await running // its final write would drop the imported jobs of sources it didn't know
+            const imported = msg.settings as Settings
+            const settings = { ...imported, rules: upgradeRules(imported.rules) ?? imported.rules }
+            await saveSettings(settings)
+            applyLocale(settings)
+            await writeJobs(async () => {
+                const jobs = await getJobs()
+                importJobs(jobs, msg.jobs as Job[])
+                prune(jobs, settings.sources)
+                rescoreAll(jobs, settings)
+                await saveJobs(jobs)
+            })
+            await schedule()
             await updateBadge()
             reply({ ok: true })
         })()

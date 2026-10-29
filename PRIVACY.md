@@ -10,7 +10,7 @@ IT Job Radar is a browser extension that collects job listings from Djinni and D
 -   **Settings.** Scoring rules, job feeds, thresholds, the city and work formats you chose, the minimum salary, the interface language and, if you set one up, your Telegram bot token and chat id. They are kept in the extension's local storage (`chrome.storage.local`) in this browser profile.
 -   **Jobs.** The listings found, their scores and the statuses you set (saved, applied, hidden), also in local storage. Jobs older than 45 days are removed, except the ones you saved or applied to.
 
-Removing the extension deletes all of it.
+Removing the extension deletes all of it. The Backup button on the settings page saves the settings and your saved and applied jobs to a file on your computer, where you choose; it isn't uploaded anywhere.
 
 ## What the extension sends, and where
 
