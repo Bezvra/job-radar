@@ -123,12 +123,13 @@ nav button[aria-pressed='true'] {
 }
 .filters {
     display: flex;
+    flex-wrap: wrap;
     gap: 8px;
     align-items: stretch;
     margin-bottom: 12px;
 }
 .filters .search {
-    flex: 1;
+    flex: 1 1 240px;
     min-width: 0;
     margin-bottom: 0;
 }

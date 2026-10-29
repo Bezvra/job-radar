@@ -33,25 +33,40 @@ function inTab(j: Job, t: Tab, settings: Settings): boolean {
     }
 }
 
-const PLATFORM_KEY = 'report.platform'
-// A per-viewer convenience: storage can be unavailable, and then the filter simply starts at «Усі» (all)
-const loadPlatform = (): Platform | 'all' => {
-    try {
-        const saved = localStorage.getItem(PLATFORM_KEY)
-        return PLATFORMS.some((p) => p.id === saved) ? (saved as Platform) : 'all'
-    } catch {
-        return 'all'
+type Sort = 'newest' | 'score'
+
+// Per-viewer conveniences: storage can be unavailable, and then the switch simply starts at its first option
+function remembered<T extends string>(key: string, options: readonly T[]): [() => T, (value: T) => void] {
+    const load = () => {
+        try {
+            const saved = localStorage.getItem(key)
+            return options.includes(saved as T) ? (saved as T) : options[0]
+        } catch {
+            return options[0]
+        }
     }
-}
-const savePlatform = (platform: Platform | 'all') => {
-    try {
-        localStorage.setItem(PLATFORM_KEY, platform)
-    } catch {
-        // not remembered, still applied
+    const save = (value: T) => {
+        try {
+            localStorage.setItem(key, value)
+        } catch {
+            // not remembered, still applied
+        }
     }
+    return [load, save]
 }
 
+const [loadPlatform, savePlatform] = remembered<Platform | 'all'>('report.platform', [
+    'all',
+    ...PLATFORMS.map((p) => p.id),
+])
+const [loadSort, saveSort] = remembered<Sort>('report.sort', ['newest', 'score'])
+
 const newestFirst = (a: Job, b: Job) => (b.publishedAt ?? b.firstSeen).localeCompare(a.publishedAt ?? a.firstSeen)
+const SORTS: Record<Sort, (a: Job, b: Job) => number> = {
+    // Published at the same time: the higher score first
+    newest: (a, b) => newestFirst(a, b) || b.score - a.score,
+    score: (a, b) => b.score - a.score || newestFirst(a, b),
+}
 
 function App() {
     const jobs = useStorage(getJobs)
@@ -60,6 +75,7 @@ function App() {
     const [tab, setTab] = useState<Tab>('apply')
     const [query, setQuery] = useState('')
     const [platform, setPlatform] = useState(loadPlatform)
+    const [sort, setSort] = useState(loadSort)
     const [refreshing, setRefreshing] = useState(false)
 
     if (!jobs || !settings) return null
@@ -71,11 +87,15 @@ function App() {
         setPlatform(p)
         savePlatform(p)
     }
+    const chooseSort = (s: Sort) => {
+        setSort(s)
+        saveSort(s)
+    }
     const q = query.toLowerCase()
     const list = all
         .filter((j) => inTab(j, tab, settings))
         .filter((j) => !q || `${j.title} ${j.company} ${j.description}`.toLowerCase().includes(q))
-        .sort((a, b) => newestFirst(a, b) || b.score - a.score)
+        .sort(SORTS[sort])
 
     // The page re-renders via the storage listener once the write lands
     // The worker writes jobs (so a running refresh can't undo this); the card updates from the storage change
@@ -166,6 +186,13 @@ function App() {
                     {[{ id: 'all' as const, label: t.report.all }, ...PLATFORMS].map((p) => (
                         <button key={p.id} aria-pressed={p.id === platform} onClick={() => choosePlatform(p.id)}>
                             {p.label}
+                        </button>
+                    ))}
+                </div>
+                <div class="segmented" role="group" aria-label={t.report.sort}>
+                    {(['newest', 'score'] as Sort[]).map((id) => (
+                        <button key={id} aria-pressed={id === sort} onClick={() => chooseSort(id)}>
+                            {t.report.sorts[id]}
                         </button>
                     ))}
                 </div>

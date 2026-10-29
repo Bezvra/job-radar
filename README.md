@@ -74,7 +74,7 @@ The salary, when a job states one, is shown next to the company: Djinni puts it 
 
 The report can be narrowed to one site (**Усі / Djinni / DOU**). The same job posted on both sites is shown once, marked «Djinni / DOU», and clicking its title asks which site to open. Jobs saved from the popup show under **Усі**, marked with their site (LinkedIn, Work.ua, Robota.ua…). Each card shows the score's reasons in green and red, and, as plain chips, the known technologies the job mentions that didn't change its score (for example Docker or Jest for a frontend profile).
 
-Within each tab, the newest jobs come first. Jobs published at the same time are ordered by score.
+Within each tab, the newest jobs come first, and jobs published at the same time are ordered by score. The **Новіші / За балом** (Newest / By score) switch next to the site filter puts the highest scores first instead. Both switches are remembered.
 
 You can edit rules, weights, thresholds, the age limit and RSS sources on the settings page (a pasted search page address becomes its feed). Saving rescores every stored job.
 

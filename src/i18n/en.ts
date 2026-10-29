@@ -58,6 +58,8 @@ export const en: Messages = {
             '.',
         ],
         search: 'Filter by title, company, text…',
+        sort: 'Sort',
+        sorts: { newest: 'Newest', score: 'By score' },
         platform: 'Platform',
         all: 'All',
         empty: 'Nothing here.',
