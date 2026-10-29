@@ -33,7 +33,7 @@ When you click the extension's icon, it reads the page open in that tab (the job
 
 ## Contact
 
-Questions about this policy: open an issue in the project's repository.
+Questions about this policy: open an issue at https://github.com/Bezvra/job-radar/issues.
 
 ---
 
