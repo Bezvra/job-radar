@@ -1,8 +1,9 @@
 import assert from 'node:assert/strict'
 import { beforeEach, test } from 'node:test'
-import { alarms, fetched, listeners, notifications, reset, responses, send, store } from './chrome'
+import { alarms, fetched, listeners, notifications, posted, reset, responses, send, store } from './chrome'
 import '../src/background'
 import { MAX_SOURCES } from '../src/core/defaults'
+import { jobKey } from '../src/services/telegram'
 import type { Job, Settings, Source } from '../src/core/types'
 import { RULES, SETTINGS } from './fixtures'
 
@@ -146,4 +147,57 @@ test('worker: registers its alarm on install and on startup', async () => {
     listeners.startup()
     await new Promise((r) => setTimeout(r, 10))
     assert.ok(alarms.has(ALARM))
+})
+
+test('worker: a button pressed in Telegram sets the job’s status and redraws its buttons', async () => {
+    const api = 'https://api.telegram.org/bot1:abc/'
+    const telegram = { enabled: true, botToken: '1:abc', chatId: '42' }
+    store.settings = settings({ locale: 'uk', telegram })
+    responses.set(source('React.js').url, feed(1, 2))
+    await send({ type: 'refresh' })
+    const [a, b] = Object.keys(jobs())
+
+    const press = (updateId: number, chat: number, data: string) => ({
+        update_id: updateId,
+        callback_query: { id: `q${updateId}`, data, message: { message_id: 7, chat: { id: chat } } },
+    })
+    let calls = 0
+    const done = new Promise<void>((resolve) =>
+        responses.set(`${api}getUpdates`, (body) => {
+            calls++
+            if (calls === 1) {
+                assert.equal(body.offset, 0)
+                assert.equal(body.timeout, 25, 'long polling')
+                return JSON.stringify({
+                    ok: true,
+                    result: [press(10, 42, `s:${jobKey(a)}`), press(11, 99, `h:${jobKey(b)}`)],
+                })
+            }
+            // Stop the loop: Telegram turned off
+            store.settings = settings({ locale: 'uk', telegram: { ...telegram, enabled: false } })
+            resolve()
+            return JSON.stringify({ ok: true, result: [] })
+        }),
+    )
+    responses.set(`${api}answerCallbackQuery`, '{"ok":true}')
+    responses.set(`${api}editMessageReplyMarkup`, '{"ok":true}')
+
+    await send({ type: 'settings-changed' }) // starts the polling, as saving Telegram settings does
+    await done
+    await new Promise((r) => setTimeout(r, 10))
+
+    assert.equal(jobs()[a].status, 'saved')
+    assert.equal(jobs()[b].status, 'new', 'a press from someone else’s chat is ignored')
+    const answer = posted.find((p) => p.url.endsWith('answerCallbackQuery'))!.body
+    assert.deepEqual(answer, { callback_query_id: 'q10', text: 'Збережено у звіті ✓' })
+    const edit = posted.find((p) => p.url.endsWith('editMessageReplyMarkup'))!.body
+    assert.equal(edit.message_id, 7)
+    assert.deepEqual(
+        edit.reply_markup.inline_keyboard[1].map((k: { text: string }) => k.text),
+        ['✓ Збережено', '📨 Подав', '🙈 Сховати'],
+    )
+    assert.deepEqual(store.tgOffset, { bot: '1', offset: 12 }, 'both presses confirmed')
+    assert.ok(alarms.has('job-radar-telegram'), 'the watchdog alarm runs while Telegram is set up')
+    await send({ type: 'settings-changed' })
+    assert.ok(!alarms.has('job-radar-telegram'), 'and goes when it isn’t')
 })

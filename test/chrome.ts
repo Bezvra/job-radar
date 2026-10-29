@@ -9,8 +9,10 @@ export const alarms = new Map<string, chrome.alarms.Alarm>()
 export const listeners: Record<string, Listener> = {}
 export const notifications: string[] = []
 export const fetched: string[] = []
-/** URL → response body; a URL missing here gets a 404 */
-export const responses = new Map<string, string>()
+/** Bodies of POST requests (the Telegram API), in order */
+export const posted: { url: string; body: any }[] = []
+/** URL → response body, or a function of the POST body making it; a URL missing here gets a 404 */
+export const responses = new Map<string, string | ((body: any) => string)>()
 
 const on = (name: string) => ({ addListener: (fn: Listener) => (listeners[name] = fn) })
 
@@ -52,10 +54,13 @@ const fakeChrome = {
 
 Object.assign(globalThis, { chrome: fakeChrome })
 
-globalThis.fetch = (async (input: string | URL) => {
+globalThis.fetch = (async (input: string | URL, init?: RequestInit) => {
     const url = String(input)
     fetched.push(url)
-    const body = responses.get(url)
+    const sent = init?.body ? JSON.parse(String(init.body)) : undefined
+    if (sent) posted.push({ url, body: sent })
+    const response = responses.get(url)
+    const body = typeof response === 'function' ? response(sent) : response
     return new Response(body ?? '', { status: body === undefined ? 404 : 200 })
 }) as typeof fetch
 
@@ -75,5 +80,6 @@ export function reset(): void {
     alarms.clear()
     responses.clear()
     fetched.length = 0
+    posted.length = 0
     notifications.length = 0
 }

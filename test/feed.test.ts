@@ -5,7 +5,7 @@ import { normalize, splitTitle } from '../src/core/normalize'
 import { isFresh, isRelevant, mergeDuplicates, mergeFeed, needsPageCheck, prune, resetJobs } from '../src/core/collect'
 import { parseJobPosting } from '../src/core/jobPage'
 import { scoreJob } from '../src/core/scoring'
-import { formatJob } from '../src/services/telegram'
+import { formatJob, jobKey, jobKeyboard, parseCallback } from '../src/services/telegram'
 import type { Job } from '../src/core/types'
 import { RULES, SETTINGS, DJINNI, DOU } from './fixtures'
 
@@ -110,6 +110,21 @@ test('telegram message escapes HTML', () => {
     j.title = 'React <Lead> & co'
     const msg = formatJob(j)
     assert.match(msg, /React &lt;Lead&gt; &amp; co/)
+    assert.match(msg, /<i>Кнопки спрацюють/)
+    // Buttons: open, then save / applied / hide carrying a short key of the job that parses back
+    const keys = jobKeyboard({ ...j, status: 'applied' }).inline_keyboard as {
+        text: string
+        url?: string
+        callback_data?: string
+    }[][]
+    assert.equal(keys[0][0].url, j.url)
+    assert.deepEqual(
+        keys[1].map((k) => k.text),
+        ['💾 Зберегти', '✓ Подав', '🙈 Сховати'],
+    )
+    assert.ok(keys[1].every((k) => k.callback_data!.length <= 64))
+    assert.deepEqual(parseCallback(keys[1][2].callback_data), { status: 'hidden', key: jobKey(j.id) })
+    assert.equal(parseCallback('x:1'), null)
     console.log(
         '   preview:\n' +
             msg

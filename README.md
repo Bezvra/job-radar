@@ -29,6 +29,8 @@ To keep the requests polite (they come from your IP), at most 10 feeds can be en
 2. Send your bot `/start`.
 3. On the settings page, paste the token, click **Знайти chat id** (Find chat id), then **Тестове повідомлення** (Test message).
 
+Each job comes with buttons: **Зберегти** (Save), **Подав** (Applied) and **Сховати** (Hide) set its status in the report, and the message shows the new status. Telegram can't reach an extension, so it works while the browser is open: the extension keeps asking Telegram for button presses (a request that waits up to 25 seconds for one). Presses made while the computer is off are applied when the browser starts, if that's within 24 hours.
+
 The token is stored only in this browser's `chrome.storage.local`.
 
 ## Setup from your CV

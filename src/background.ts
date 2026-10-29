@@ -14,10 +14,21 @@ import { MAX_SOURCES, MIN_INTERVAL_HOURS } from './core/defaults'
 import { parseJobPosting } from './core/jobPage'
 import { upgradeRules } from './core/profile'
 import { resolveLocale, setLocale, t } from './i18n'
-import { sendJobs, sendTest } from './services/telegram'
+import {
+    answerCallback,
+    getUpdates,
+    jobKey,
+    parseCallback,
+    sendJobs,
+    sendTest,
+    type TelegramUpdate,
+    updateKeyboard,
+} from './services/telegram'
 import type { Job, JobStatus, Settings } from './core/types'
 
 const ALARM = 'job-radar-refresh'
+/** Restarts the Telegram button polling if Chrome stopped the worker (see pollTelegram) */
+const POLL_ALARM = 'job-radar-telegram'
 
 /** The worker's texts (notifications, Telegram, score reasons, run errors) follow the interface language too */
 const applyLocale = (settings: Settings) => setLocale(resolveLocale(settings.locale, navigator.language))
@@ -50,6 +61,7 @@ async function schedule(): Promise<void> {
         getLastRun(),
         chrome.alarms.get(ALARM),
     ])
+    await schedulePolling()
     const period = Math.max(MIN_INTERVAL_HOURS, intervalHours) * 60
     if (alarm?.periodInMinutes === period) return
     const sinceLast = lastRun ? (Date.now() - Date.parse(lastRun.at)) / 60_000 : Infinity
@@ -65,6 +77,89 @@ async function schedule(): Promise<void> {
 function keepAlive(): () => void {
     const timer = setInterval(() => void chrome.runtime.getPlatformInfo(), 20_000)
     return () => clearInterval(timer)
+}
+
+const telegramReady = ({ telegram: tg }: Settings) => tg.enabled && !!tg.botToken && !!tg.chatId
+
+/** The watchdog alarm runs while Telegram is set up, and starts the polling now */
+async function schedulePolling(): Promise<void> {
+    if (!telegramReady(await getSettings())) return void (await chrome.alarms.clear(POLL_ALARM))
+    if (!(await chrome.alarms.get(POLL_ALARM))) await chrome.alarms.create(POLL_ALARM, { periodInMinutes: 1 })
+    void pollTelegram()
+}
+
+/** Statuses set from the report or Telegram: saved now, and kept by a running refresh. Returns the jobs found */
+async function setStatuses(ids: string[], status: JobStatus): Promise<Job[]> {
+    if (running) for (const id of ids) statusesDuringRefresh.set(id, status)
+    const changed = await writeJobs(async () => {
+        const jobs = await getJobs()
+        const found = ids.filter((id) => jobs[id]).map((id) => Object.assign(jobs[id], { status }))
+        await saveJobs(jobs)
+        return found
+    })
+    await updateBadge()
+    return changed
+}
+
+/** The bot's offset (the next update to read) is kept per bot, so a new token doesn't skip the new bot's updates */
+async function telegramOffset(bot: string): Promise<number> {
+    const { tgOffset } = await chrome.storage.local.get('tgOffset')
+    const saved = tgOffset as { bot: string; offset: number } | undefined
+    return saved?.bot === bot ? saved.offset : 0
+}
+
+/** A press of a job's button in Telegram: set the status, say so, and redraw the buttons */
+async function handleUpdate(update: TelegramUpdate, settings: Settings): Promise<void> {
+    const press = update.callback_query
+    const message = press?.message
+    // Only presses in the user's own chat; anyone can find a bot and write to it
+    if (!press || !message || String(message.chat.id) !== settings.telegram.chatId) return
+    const { botToken } = settings.telegram
+    const action = parseCallback(press.data)
+    if (!action) return void (await answerCallback(botToken, press.id, ''))
+    const id = Object.keys(await getJobs()).find((jobId) => jobKey(jobId) === action.key)
+    const [job] = id ? await setStatuses([id], action.status) : []
+    if (!job) return void (await answerCallback(botToken, press.id, t.telegram.gone))
+    await answerCallback(botToken, press.id, t.telegram.done[action.status as 'saved' | 'applied' | 'hidden'])
+    await updateKeyboard(botToken, message.chat.id, message.message_id, job)
+}
+
+let polling = false
+
+/**
+ * The buttons under Telegram jobs: Telegram can't reach an extension, so it asks for presses itself, by long polling
+ * (each request waits up to 25s and returns as soon as there's a press), as long as Telegram is set up. That keeps the
+ * worker running while the browser is open (keepAlive). Presses made while it's closed wait at Telegram for 24 hours
+ * and are applied on the next start. If Chrome stops the worker anyway, POLL_ALARM starts this again within a minute
+ */
+async function pollTelegram(): Promise<void> {
+    if (polling) return
+    polling = true
+    const release = keepAlive()
+    try {
+        for (;;) {
+            const settings = await getSettings()
+            if (!telegramReady(settings)) break
+            applyLocale(settings)
+            const { botToken } = settings.telegram
+            const bot = botToken.split(':')[0]
+            let updates: TelegramUpdate[]
+            try {
+                updates = await getUpdates(botToken, await telegramOffset(bot))
+            } catch {
+                // Offline, a wrong token, or another getUpdates (the options page's «Знайти chat id»): wait
+                await new Promise((r) => setTimeout(r, 30_000))
+                continue
+            }
+            for (const update of updates) {
+                await handleUpdate(update, settings).catch(() => undefined)
+                await chrome.storage.local.set({ tgOffset: { bot, offset: update.update_id + 1 } })
+            }
+        }
+    } finally {
+        release()
+        polling = false
+    }
 }
 
 /** A hung request would hold the refresh (and every later one) until Chrome kills the worker */
@@ -204,7 +299,12 @@ chrome.runtime.onInstalled.addListener(({ reason }) => {
     if (reason === chrome.runtime.OnInstalledReason.UPDATE) void upgradeAndRescore()
 })
 chrome.runtime.onStartup.addListener(() => void schedule())
-chrome.alarms.onAlarm.addListener((a) => a.name === ALARM && void refreshOnce())
+chrome.alarms.onAlarm.addListener((a) => {
+    if (a.name === ALARM) void refreshOnce()
+    if (a.name === POLL_ALARM) void pollTelegram()
+})
+// Any wake of the worker (an alarm, a message, the browser starting) resumes the Telegram polling
+void pollTelegram()
 chrome.notifications.onClicked.addListener(() => chrome.tabs.create({ url: chrome.runtime.getURL('report.html') }))
 
 chrome.runtime.onMessage.addListener((msg, _sender, reply) => {
@@ -244,17 +344,8 @@ chrome.runtime.onMessage.addListener((msg, _sender, reply) => {
     }
     // A status set in the report (one job, or «Позначити переглянутими» for many): saved now, kept by a running refresh
     if (msg?.type === 'set-status') {
-        ;(async () => {
-            const { ids, status } = msg as { ids: string[]; status: JobStatus }
-            if (running) for (const id of ids) statusesDuringRefresh.set(id, status)
-            await writeJobs(async () => {
-                const jobs = await getJobs()
-                for (const id of ids) if (jobs[id]) jobs[id].status = status
-                await saveJobs(jobs)
-            })
-            await updateBadge()
-            reply({ ok: true })
-        })()
+        const { ids, status } = msg as { ids: string[]; status: JobStatus }
+        void setStatuses(ids, status).then(() => reply({ ok: true }))
         return true
     }
     // A backup file from the options page: its settings replace the current ones, its saved and applied jobs are added

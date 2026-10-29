@@ -96,6 +96,14 @@ export const uk = {
         newJobs: (n: number) => `Нових релевантних вакансій: ${n}`,
     },
     telegram: {
+        buttons: {
+            saved: (on: boolean): string => (on ? '✓ Збережено' : '💾 Зберегти'),
+            applied: (on: boolean): string => (on ? '✓ Подав' : '📨 Подав'),
+            hidden: (on: boolean): string => (on ? '✓ Сховано' : '🙈 Сховати'),
+        },
+        done: { saved: 'Збережено у звіті ✓', applied: 'Позначено «Подав» ✓', hidden: 'Сховано ✓' },
+        gone: 'Цієї вакансії вже немає у звіті.',
+        buttonsHint: 'Кнопки спрацюють, коли на комп’ютері відкритий браузер з IT Job Radar.',
         open: 'Відкрити вакансію',
         more: (n: number) => `…і ще ${n} у звіті розширення.`,
         connected: 'IT Job Radar підключено ✅',

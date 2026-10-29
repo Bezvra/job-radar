@@ -97,6 +97,14 @@ export const en: Messages = {
         newJobs: (n: number) => `New relevant jobs: ${n}`,
     },
     telegram: {
+        buttons: {
+            saved: (on: boolean) => (on ? '✓ Saved' : '💾 Save'),
+            applied: (on: boolean) => (on ? '✓ Applied' : '📨 Applied'),
+            hidden: (on: boolean) => (on ? '✓ Hidden' : '🙈 Hide'),
+        },
+        done: { saved: 'Saved to the report ✓', applied: 'Marked as applied ✓', hidden: 'Hidden ✓' },
+        gone: 'This job is no longer in the report.',
+        buttonsHint: 'The buttons work while a browser with IT Job Radar is open on your computer.',
         open: 'Open the job',
         more: (n: number) => `…and ${n} more in the extension’s report.`,
         connected: 'IT Job Radar is connected ✅',
