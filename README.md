@@ -6,6 +6,10 @@ The interface is in Ukrainian and English: it follows the browser's language (Uk
 
 ## Install
 
+From a release, without building: download `job-radar-<version>.zip` from [Releases](https://github.com/Bezvra/job-radar/releases), unzip it, open `chrome://extensions`, turn on **Developer mode**, click **Load unpacked** and select the unzipped folder. To update, unzip the new version into the same folder and press ⟳ on the extension card; your settings and jobs stay.
+
+From the source:
+
 1. `npm i && npm run release`. The build appears in `extensions/job-radar-<version>/`.
 2. Open `chrome://extensions`, turn on **Developer mode**, click **Load unpacked** and select that folder.
 3. A setup page opens. Upload your CV as a PDF (or set things up by hand), answer a few questions and pick the job feeds (see below).
