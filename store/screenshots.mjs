@@ -309,8 +309,8 @@ for (const locale of ['uk', 'en']) {
 const icon = readFileSync('public/icon.png').toString('base64')
 const TAGLINE = {
     // No site names: the images outlive the list of sources
-    uk: ['IT Job Radar', 'IT-вакансії, оцінені за твоїм CV'],
-    en: ['IT Job Radar', 'IT jobs, scored against your CV'],
+    uk: ['IT Job Radar', 'Вакансії, оцінені за твоїм CV'],
+    en: ['IT Job Radar', 'Jobs, scored against your CV'],
 }
 for (const locale of ['uk', 'en']) {
     for (const [name, w, h, iconSize, title, sub] of [
@@ -319,7 +319,7 @@ for (const locale of ['uk', 'en']) {
     ]) {
         tiles.set(
             `/tile/${name}-${locale}`,
-            `<!doctype html><meta charset="utf-8"><style>body{margin:0;width:${w}px;height:${h}px;display:flex;align-items:center;justify-content:center;gap:${w / 18}px;background:radial-gradient(circle at 25% 40%,#1f3b33,#121614 70%);font-family:-apple-system,system-ui,sans-serif;color:#eef2ee;overflow:hidden}img{width:${iconSize}px;height:${iconSize}px;border-radius:50%;box-shadow:0 0 0 ${iconSize / 16}px #2f7d4f55,0 10px 40px #0008}h1{margin:0;font-size:${title}px;letter-spacing:-.02em}p{margin:${sub / 3}px 0 0;font-size:${sub}px;color:#b5c7bb;max-width:${w * 0.52}px;line-height:1.3}</style>
+            `<!doctype html><meta charset="utf-8"><style>body{margin:0;width:${w}px;height:${h}px;display:flex;align-items:center;justify-content:center;gap:${w / 18}px;background:radial-gradient(circle at 25% 40%,#1f3b33,#121614 70%);font-family:-apple-system,system-ui,sans-serif;color:#eef2ee;overflow:hidden}img{width:${iconSize}px;height:${iconSize}px;border-radius:50%;box-shadow:0 0 0 ${iconSize / 16}px #2f7d4f55,0 10px 40px #0008}h1{margin:0;font-size:${title}px;letter-spacing:-.02em}p{margin:${sub / 3}px 0 0;font-size:${sub}px;color:#b5c7bb;white-space:nowrap;line-height:1.3}</style>
 <img src="data:image/png;base64,${icon}"><div><h1>${TAGLINE[locale][0]}</h1><p>${TAGLINE[locale][1]}</p></div>`,
         )
         const t = await tab(`http://127.0.0.1:${PORT}/tile/${name}-${locale}`, { width: w, height: h })
