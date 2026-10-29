@@ -13,6 +13,12 @@ The interface is in Ukrainian and English: it follows the browser's language (Uk
 
 The manifest has a fixed `key`, so every build has the same extension ID (`ncincnjejoopponbjalpajmpmibdmhel`) and the report is always at `chrome-extension://ncincnjejoopponbjalpajmpmibdmhel/report.html`. Loading a newer release folder replaces the old one and keeps your settings and jobs. For day-to-day development, load `dist/` once and press ⟳ on the extension card after `npm run build`. `npm run zip` leaves the key out, because the Chrome Web Store assigns its own ID.
 
+## Privacy
+
+The CV is read in the browser and not stored; settings and jobs stay in this browser's local storage; requests go only to djinni.co, jobs.dou.ua and, if you connect a bot, api.telegram.org. See [PRIVACY.md](PRIVACY.md).
+
+To keep the requests polite (they come from your IP), at most 10 feeds can be enabled, and the refresh interval is at least 2 hours.
+
 ## Telegram
 
 1. Create a bot with [@BotFather](https://t.me/BotFather) and copy the token.

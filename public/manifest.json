@@ -7,8 +7,12 @@
     "permissions": ["storage", "alarms", "notifications", "activeTab", "scripting"],
     "host_permissions": ["https://djinni.co/*", "https://jobs.dou.ua/*", "https://api.telegram.org/*"],
     "background": { "service_worker": "background.js", "type": "module" },
-    "action": { "default_title": "__MSG_actionTitle__", "default_popup": "popup.html" },
+    "action": {
+        "default_title": "__MSG_actionTitle__",
+        "default_popup": "popup.html",
+        "default_icon": { "16": "icon-16.png", "32": "icon-32.png", "48": "icon-48.png", "128": "icon.png" }
+    },
     "options_page": "options.html",
-    "icons": { "128": "icon.png" },
+    "icons": { "16": "icon-16.png", "32": "icon-32.png", "48": "icon-48.png", "128": "icon.png" },
     "key": "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEA5x7e8o9yIi2ZKxXQht/29/eiX1skYvojBn2wZhhV0D82MFV9uSTpzZFJuV7JaeZ0DHsO9FGejApOMN+VcDlxfTJQIfV/8swygOrBQwyKcJIBZLYcXuS9XeIPVT4pKsZu7JlSwZEB1JxWtpD3lvOdBf+W3ucv9sPjJk89O0eqdq4BHoJRI7Mr6ixY7gwqlj75C2bc5kXa84sp4AYlp8SfC7F/TXg344KMwv714b7PWdlQA5RZRvSlJXb4ZLzlF9u52kngVGxv3gYhH0Yn2XAaRR8PIprEISe19ytnFrjh9o/NlUfEbDtk90TxFKo/Fb/nsXq2+hdq5jjaPZMhP9+QzQIDAQAB"
 }

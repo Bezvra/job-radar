@@ -1,7 +1,7 @@
 import { render } from 'preact'
 import { useEffect, useState } from 'preact/hooks'
 import { MAX_AGE_DAYS } from '../core/collect'
-import { DEFAULT_SETTINGS } from '../core/defaults'
+import { DEFAULT_SETTINGS, MAX_SOURCES, MIN_INTERVAL_HOURS } from '../core/defaults'
 import { toFeedUrl } from '../core/feeds'
 import type { Rule, Settings } from '../core/types'
 import { LOCALES, locale, ruleLabel, t } from '../i18n'
@@ -76,6 +76,9 @@ function fromDraft(d: Draft): Settings {
         const problem = sourceProblem(s)
         if (problem) throw rowError(t.options.sourceRow(i + 1, s.name || s.url, problem), 'sources')
     })
+    if (d.sources.filter((s) => s.enabled).length > MAX_SOURCES) {
+        throw rowError(t.options.tooManySources(MAX_SOURCES), 'sources')
+    }
     d.rules.forEach((r, i) => {
         const problem = ruleProblem(r)
         if (problem) throw rowError(t.options.ruleRow(i + 1, r.label || r.pattern, problem), 'filters')
@@ -97,7 +100,7 @@ function fromDraft(d: Draft): Settings {
             title: -Math.abs(Number(d.unlistedTitle) || 0),
             description: -Math.abs(Number(d.unlistedDescription) || 0),
         },
-        intervalHours: Math.max(1, Number(d.intervalHours)),
+        intervalHours: Math.max(MIN_INTERVAL_HOURS, Number(d.intervalHours) || DEFAULT_SETTINGS.intervalHours),
         notify: d.notify,
         telegram: { enabled: d.tgEnabled, botToken: d.tgToken.trim(), chatId: d.tgChat.trim() },
         locale: d.locale,
@@ -247,7 +250,13 @@ function App() {
                             </div>
                             <div>
                                 <label for="interval">{t.options.interval}</label>
-                                <input id="interval" type="number" min="1" max="48" {...text('intervalHours')} />
+                                <input
+                                    id="interval"
+                                    type="number"
+                                    min={MIN_INTERVAL_HOURS}
+                                    max="48"
+                                    {...text('intervalHours')}
+                                />
                             </div>
                             <div>
                                 <label for="locale">{t.locale.label}</label>

@@ -110,6 +110,8 @@ export const en: Messages = {
         resetConfirm: 'Reset all settings?',
         tabs: { general: 'General', sources: 'Sources', filters: 'Filters' },
         sourceRow: (i: number, name: string, problem: string) => `source ${i} “${name}”: ${problem}`,
+        tooManySources: (max: number) =>
+            `too many sources enabled, at most ${max}: each one is downloaded on every refresh, and a site may block frequent requests. Disable or remove some.`,
         ruleRow: (i: number, name: string, problem: string) => `rule ${i} “${name}”: ${problem}`,
         general: 'General',
         applyFrom: '“Apply” from score',
@@ -202,6 +204,8 @@ export const en: Messages = {
         pickATech: 'Mark at least one technology you work with.',
         badWeight: (tech: string) => `The weight for ${tech} must be a number.`,
         pickASource: 'Pick at least one source, or there will be no jobs.',
+        tooManySources: (max: number) =>
+            `Too many sources picked, at most ${max}: each one is downloaded on every refresh, and a site may block frequent requests.`,
     },
     upload: {
         legend: 'Your CV',

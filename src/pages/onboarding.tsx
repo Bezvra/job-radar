@@ -1,6 +1,7 @@
 import { render } from 'preact'
 import { useEffect, useState } from 'preact/hooks'
 import { analyzeCv, experienceYears } from '../core/cv'
+import { MAX_SOURCES } from '../core/defaults'
 import { suggestFeeds, toSources } from '../core/feeds'
 import { cvLanguages, type LanguageSkill } from '../core/language'
 import { buildRules, type Direction, type Level, type Profile } from '../core/profile'
@@ -113,6 +114,7 @@ function App() {
     const finish = async () => {
         const chosen = chosenFeeds(feeds!, sites)
         if (!chosen.length) return setError(t.wizard.pickASource)
+        if (chosen.length > MAX_SOURCES) return setError(t.wizard.tooManySources(MAX_SOURCES))
         const { minSalary, ...answers } = prefs!
         const profile: Profile = {
             ...answers,

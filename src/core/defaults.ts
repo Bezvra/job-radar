@@ -1,5 +1,12 @@
 import type { Settings } from './types'
 
+/**
+ * Limits that keep the requests to the sites polite: every enabled feed is fetched on each refresh, from the user's own
+ * IP, so dozens of feeds every hour could get it blocked
+ */
+export const MAX_SOURCES = 10
+export const MIN_INTERVAL_HOURS = 2
+
 export const DEFAULT_SETTINGS: Settings = {
     // No built-in sources either: the onboarding wizard suggests feeds for the user's stack (see core/feeds.ts)
     sources: [],

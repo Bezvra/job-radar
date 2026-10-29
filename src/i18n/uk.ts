@@ -109,6 +109,8 @@ export const uk = {
         resetConfirm: 'Скинути всі налаштування?',
         tabs: { general: 'Загальні', sources: 'Джерела', filters: 'Фільтри' },
         sourceRow: (i: number, name: string, problem: string) => `джерело ${i} «${name}»: ${problem}`,
+        tooManySources: (max: number) =>
+            `увімкнено забагато джерел, максимум ${max}: кожне завантажується при кожному оновленні, і сайт може заблокувати часті запити. Вимкни або видали зайві.`,
         ruleRow: (i: number, name: string, problem: string) => `правило ${i} «${name}»: ${problem}`,
         general: 'Загальне',
         applyFrom: '«Подавайся» від балу',
@@ -200,6 +202,8 @@ export const uk = {
         pickATech: 'Познач хоча б одну технологію, з якою працюєш.',
         badWeight: (tech: string) => `Вага для ${tech} має бути числом.`,
         pickASource: 'Обери хоча б одне джерело, інакше вакансій не буде.',
+        tooManySources: (max: number) =>
+            `Обрано забагато джерел, максимум ${max}: кожне завантажується при кожному оновленні, і сайт може заблокувати часті запити.`,
     },
     upload: {
         legend: 'Твоє CV',

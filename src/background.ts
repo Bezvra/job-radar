@@ -9,6 +9,7 @@ import {
     rescoreAll,
     resetJobs,
 } from './core/collect'
+import { MAX_SOURCES, MIN_INTERVAL_HOURS } from './core/defaults'
 import { parseJobPosting } from './core/jobPage'
 import { upgradeRules } from './core/profile'
 import { resolveLocale, setLocale, t } from './i18n'
@@ -48,7 +49,7 @@ async function schedule(): Promise<void> {
         getLastRun(),
         chrome.alarms.get(ALARM),
     ])
-    const period = Math.max(1, intervalHours) * 60
+    const period = Math.max(MIN_INTERVAL_HOURS, intervalHours) * 60
     if (alarm?.periodInMinutes === period) return
     const sinceLast = lastRun ? (Date.now() - Date.parse(lastRun.at)) / 60_000 : Infinity
     await chrome.alarms.clear(ALARM)
@@ -124,7 +125,8 @@ async function refresh(): Promise<RunLog> {
     const log: RunLog = { at: new Date().toISOString(), results: [], newRelevant: 0 }
 
     const relevant: Job[] = []
-    for (const src of settings.sources.filter((s) => s.enabled)) {
+    // The pages refuse to save more; settings from before that limit are cut here
+    for (const src of settings.sources.filter((s) => s.enabled).slice(0, MAX_SOURCES)) {
         try {
             const res = await fetch(src.url, {
                 credentials: 'omit',
