@@ -28,6 +28,12 @@ test('profile turns into rules: level, leads, formats, full stack', () => {
     )
     assert.ok(rules.some((r) => r.label === 'Angular' && r.weight === UNWANTED_WEIGHT))
     assert.equal(cityPattern('Одеса, Odesa'), 'одес|odes')
+    // One spelling is enough: the Latin one and the larger cities' older spellings come with it
+    assert.equal(cityPattern('Одеса'), 'одес|odes')
+    assert.equal(cityPattern('Odessa'), 'одес|odes')
+    assert.equal(cityPattern('Київ'), 'київ|kyiv|kiev|києв|киев')
+    assert.equal(cityPattern('Біла Церква'), 'біла церкв|bila tserkv')
+    assert.equal(cityPattern('Ізмаїл'), 'ізмаї|izmai')
     assert.ok(score('Frontend', 'гібрид, офіс в Одесі') > score('Frontend', 'гібрид, офіс у Львові'))
     assert.ok(
         rules.some((r) => r.label === 'Лише офіс'),
@@ -237,4 +243,20 @@ test('office means an office: not "Officer", back-office or home office; old sav
         !scoreJob('Engineer', 'Chief Operating Officer, hybrid', upgraded).reasons.some((r) => r.label === 'Офіс'),
     )
     assert.equal(upgradeRules(upgraded), null, 'nothing left to fix')
+
+    // Rules saved when «Одеса» matched only Cyrillic texts get the Latin spelling in every rule that names the city
+    const cyrillicOnly = rules.map((r) => ({
+        ...r,
+        pattern: r.pattern.split('одес|odes').join('одес'),
+        ...(r.unless && { unless: r.unless.split('одес|odes').join('одес') }),
+    }))
+    const respelled = upgradeRules(cyrillicOnly)!
+    assert.deepEqual(
+        respelled.map((r) => [r.pattern, r.unless]),
+        rules.map((r) => [r.pattern, r.unless]),
+    )
+    assert.ok(
+        scoreJob('Engineer', 'Office in Odesa', respelled).reasons.some((r) => r.label === 'Офіс: Одеса'),
+        'an English job in Odesa now counts',
+    )
 })

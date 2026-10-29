@@ -268,8 +268,8 @@ export const en: Messages = {
         relocationHint:
             'Without “Relocation”, jobs that require moving go down (−25); with it, they go up a little (+5).',
         city: 'City',
-        cityPlaceholder: 'e.g. Odesa, Одеса',
-        cityHint: 'Several spellings, comma-separated: jobs are written in both Ukrainian and English.',
+        cityPlaceholder: 'e.g. Odesa',
+        cityHint: 'Other spellings (Одеса, Odessa) are added for you. Add any others, comma-separated.',
         languages: 'Languages',
         removeLanguage: 'Remove',
         addLanguage: '+ Add a language',

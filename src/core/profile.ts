@@ -169,34 +169,118 @@ export function upgradeRules(rules: Rule[]): Rule[] | null {
         changed = true
         return { ...fixed, labelKey }
     })
-    // The city comes from the «Місто: …» rule
-    const city = keyed.find((r) => r.labelKey?.id === 'city' && r.weight > 0)
-    const upgraded = keyed.map((r) => {
-        const pattern = r.pattern
-        const bonus = r.weight > 0 && (pattern === OFFICE_WORD || pattern === HYBRID_WORD)
-        if (bonus && city) {
-            changed = true
-            const id = pattern === OFFICE_WORD ? 'officeIn' : 'hybridIn'
-            return { ...r, pattern: inCity(city.pattern, pattern), ...labelled(id, city.labelKey!.args![0]) }
-        }
-        if (pattern === r.pattern) return r
+    // The city comes from the «Місто: …» rule. One saved before the city's other spellings were added gets them, and
+    // so do the rules that name the city (office and hybrid bonuses, office elsewhere)
+    const cityRule = keyed.find((r) => r.labelKey?.id === 'city' && r.weight > 0)
+    const cityName = cityRule?.labelKey?.args?.[0]
+    const oldCity = cityRule?.pattern ?? ''
+    const newCity = cityName ? mergeStems([...oldCity.split('|'), ...cityPattern(cityName).split('|')]) : oldCity
+    const respell = (s: string) => (s.includes(newCity) ? s : s.split(oldCity).join(newCity))
+    const spelled =
+        newCity === oldCity
+            ? keyed
+            : keyed.map((r) => {
+                  if (!['city', 'officeIn', 'hybridIn', 'elsewhere'].includes(r.labelKey?.id ?? '')) return r
+                  changed = true
+                  return { ...r, pattern: respell(r.pattern), ...(r.unless && { unless: respell(r.unless) }) }
+              })
+    const upgraded = spelled.map((r) => {
+        const bonus = r.weight > 0 && (r.pattern === OFFICE_WORD || r.pattern === HYBRID_WORD)
+        if (!bonus || !cityName) return r
         changed = true
-        return { ...r, pattern }
+        const id = r.pattern === OFFICE_WORD ? 'officeIn' : 'hybridIn'
+        return { ...r, pattern: inCity(newCity, r.pattern), ...labelled(id, cityName) }
     })
     return changed ? upgraded : null
 }
 
 const escapeRegex = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
 
-/** "Одеса, Odesa" → "одес|odes": dropping the last letter also matches inflected forms (Одесі, Одесу) */
+/** Ukrainian (and Russian) letters in Latin, the official Ukrainian transliteration: Одеса → odesa, Харків → kharkiv */
+const LATIN: Record<string, string> = {
+    а: 'a',
+    б: 'b',
+    в: 'v',
+    г: 'h',
+    ґ: 'g',
+    д: 'd',
+    е: 'e',
+    є: 'ie',
+    ж: 'zh',
+    з: 'z',
+    и: 'y',
+    і: 'i',
+    ї: 'i',
+    й: 'i',
+    к: 'k',
+    л: 'l',
+    м: 'm',
+    н: 'n',
+    о: 'o',
+    п: 'p',
+    р: 'r',
+    с: 's',
+    т: 't',
+    у: 'u',
+    ф: 'f',
+    х: 'kh',
+    ц: 'ts',
+    ч: 'ch',
+    ш: 'sh',
+    щ: 'shch',
+    ь: '',
+    ю: 'iu',
+    я: 'ia',
+    ы: 'y',
+    э: 'e',
+    ё: 'io',
+    ъ: '',
+    '’': '',
+    "'": '',
+}
+/** At the start of a word these are spelled with y: Єнакієве → Yenakiieve */
+const LATIN_FIRST: Record<string, string> = { є: 'ye', ї: 'yi', й: 'y', ю: 'yu', я: 'ya' }
+
+const toLatin = (s: string) =>
+    s.replace(/[а-яіїєґёыэъ’']/g, (ch, i: number) =>
+        i === 0 || /[\s-]/.test(s[i - 1]) ? LATIN_FIRST[ch] ?? LATIN[ch] : LATIN[ch],
+    )
+
+/**
+ * Other spellings job texts use for the larger cities: the older Russian-based ones and inflected stems the cut below
+ * misses (Київ → Києві). Any spelling in a group brings in the rest
+ */
+const CITY_SPELLINGS = [
+    ['одеса', 'odesa', 'odessa', 'одесса'],
+    ['київ', 'kyiv', 'kiev', 'києв', 'киев'],
+    ['львів', 'lviv', 'lvov', 'львов'],
+    ['харків', 'kharkiv', 'kharkov', 'харьков'],
+    ['дніпро', 'dnipro', 'dnepr', 'днепр', 'дніпр'],
+    ['запоріжжя', 'zaporizhzhia', 'zaporozhye', 'запорожье'],
+    ['вінниця', 'vinnytsia', 'vinnitsa', 'винница'],
+    ['миколаїв', 'mykolaiv', 'nikolaev', 'николаев'],
+    ['івано-франківськ', 'ivano-frankivsk', 'ивано-франковск'],
+    ['тернопіль', 'ternopil', 'тернополь'],
+    ['ужгород', 'uzhhorod', 'uzhgorod'],
+    ['чернівці', 'chernivtsi', 'chernovtsy', 'черновцы'],
+]
+
+/**
+ * A city's spellings as one pattern: "Одеса" → "одес|odes". The Latin spelling is added for a Cyrillic one, and the
+ * known variants of larger cities (Odessa, Kiev). Dropping the last letter also matches inflected forms (Одесі, Одесу)
+ */
 export function cityPattern(city: string): string {
-    return city
+    const typed = city
         .split(',')
         .map((v) => v.trim().toLowerCase())
         .filter(Boolean)
-        .map((v) => escapeRegex(v.length >= 5 ? v.slice(0, -1) : v))
-        .join('|')
+    const spellings = typed.flatMap((v) => [v, toLatin(v), ...(CITY_SPELLINGS.find((g) => g.includes(v)) ?? [])])
+    return mergeStems(spellings.map((v) => escapeRegex(v.length >= 5 ? v.slice(0, -1) : v)))
 }
+
+/** Stems joined into a pattern, without duplicates or ones a shorter stem already matches (odess after odes) */
+const mergeStems = (stems: string[]) =>
+    stems.filter((s, i) => s && !stems.some((o, j) => (o === s ? j < i : o && s.startsWith(o)))).join('|')
 
 export function buildRules(p: Profile): Rule[] {
     const rules: Rule[] = []
