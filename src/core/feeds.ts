@@ -1,5 +1,5 @@
 import { t } from '../i18n'
-import type { Direction } from './profile'
+import type { Direction, Level } from './profile'
 import type { Source } from './types'
 
 /**
@@ -145,8 +145,26 @@ const DIRECTION_FEEDS: Record<Direction, { djinni?: string; dou?: string }> = {
     mobile: {},
 }
 
-export const djinniFeed = (keyword: string) =>
-    `https://${DJINNI_HOST}/jobs/rss/?primary_keyword=${encodeURIComponent(keyword)}`
+export const djinniFeed = (keyword: string, experience: string[] = []) =>
+    `https://${DJINNI_HOST}/jobs/rss/?primary_keyword=${encodeURIComponent(keyword)}` +
+    experience.map((e) => `&exp_level=${e}`).join('')
+
+/** Djinni's experience filter values (`exp_level`, the years a job asks for; several can be combined), by years */
+const DJINNI_EXPERIENCE = ['no_exp', '1y', '2y', '3y', '4y', '5y', '6y', '7y', '8y', '9y', '10y']
+
+/**
+ * The Djinni experience levels to search for a candidate: from what their level starts at (so a senior doesn't get
+ * internships) up to a year more than they have (a job asking for much more is out of reach). Without a CV, up to
+ * what the level usually asks for
+ */
+export function djinniExperience(level: Level, years: number | null): string[] {
+    const from = { junior: 0, middle: 1, senior: 3 }[level]
+    const upTo = years === null ? { junior: 1, middle: 4, senior: 10 }[level] : Math.floor(years) + 1
+    return DJINNI_EXPERIENCE.slice(from, Math.min(10, Math.max(from, upTo)) + 1)
+}
+
+/** Years in an exp_level value: no_exp 0, 3y 3 */
+const expLevelYears = (value: string) => (value === 'no_exp' ? 0 : parseInt(value, 10))
 export const douFeed = (params: { category?: string; search?: string }) =>
     `https://${DOU_HOST}/vacancies/feeds/?${new URLSearchParams(params as Record<string, string>)}`.replace(
         /\+/g,
@@ -184,9 +202,14 @@ export function feedName(feedUrl: string): string {
             .filter(Boolean)
             .map(t.feeds.search),
     ]
-    const known = new Set(['primary_keyword', 'category', 'all_keywords', 'keywords', 'search'])
+    const years = p
+        .getAll('exp_level')
+        .map(expLevelYears)
+        .filter((y) => !isNaN(y))
+    const experience = years.length ? ` · ${t.feeds.experience(Math.min(...years), Math.max(...years))}` : ''
+    const known = new Set(['primary_keyword', 'category', 'all_keywords', 'keywords', 'search', 'exp_level'])
     const more = [...p.keys()].some((k) => !known.has(k)) ? t.feeds.more : ''
-    return `${site} · ${parts.join(', ') || t.feeds.all}${more}`
+    return `${site} · ${parts.join(', ') || t.feeds.all}${experience}${more}`
 }
 
 /**
@@ -209,8 +232,9 @@ export interface FeedSuggestion {
 /**
  * Feeds for a stack: the techs' Djinni categories and DOU categories (or a DOU search for frameworks DOU has no category
  * for), in the order of the techs' weights. The first two feeds per site are preselected; the rest are offered unticked.
+ * Djinni feeds get the experience filter (djinniExperience) when given.
  */
-export function suggestFeeds(techIds: string[], direction: Direction): FeedSuggestion[] {
+export function suggestFeeds(techIds: string[], direction: Direction, experience: string[] = []): FeedSuggestion[] {
     const djinni: string[] = []
     const dou: { category?: string; search?: string }[] = []
     const add = <T>(list: T[], item: T) =>
@@ -226,7 +250,7 @@ export function suggestFeeds(techIds: string[], direction: Direction): FeedSugge
     if (fallback.djinni) add(djinni, fallback.djinni)
     if (fallback.dou) add(dou, { category: fallback.dou })
     const urls = [
-        ...djinni.slice(0, 5).map((k, i) => ({ url: djinniFeed(k), checked: i < 2 })),
+        ...djinni.slice(0, 5).map((k, i) => ({ url: djinniFeed(k, experience), checked: i < 2 })),
         ...dou.slice(0, 5).map((d, i) => ({ url: douFeed(d), checked: i < 2 })),
     ]
     return urls.map((s) => ({ ...s, name: feedName(s.url) }))

@@ -190,6 +190,8 @@ export const en: Messages = {
         search: (q: string) => `search “${q}”`,
         all: 'all jobs',
         more: ' + filters',
+        experience: (from: number, to: number) =>
+            `${from === to ? from : `${from}–${to}`}${to === 10 ? '+' : ''} yrs experience`,
     },
     salary: {
         from: 'from ',

@@ -189,6 +189,8 @@ export const uk = {
         search: (q: string) => `пошук «${q}»`,
         all: 'усі вакансії',
         more: ' + фільтри',
+        experience: (from: number, to: number) =>
+            `досвід ${from === to ? from : `${from}–${to}`}${to === 10 ? '+' : ''} р.`,
     },
     salary: {
         from: 'від ',

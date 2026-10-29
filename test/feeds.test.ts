@@ -1,6 +1,13 @@
 import assert from 'node:assert/strict'
 import { test } from 'node:test'
-import { feedName, suggestFeeds, toFeedUrl, toSources, unknownDjinniKeywords } from '../src/core/feeds'
+import {
+    djinniExperience,
+    feedName,
+    suggestFeeds,
+    toFeedUrl,
+    toSources,
+    unknownDjinniKeywords,
+} from '../src/core/feeds'
 
 test('feeds: a search page becomes its RSS feed, named from its filters; suggestions follow the stack', () => {
     assert.equal(
@@ -53,6 +60,24 @@ test('feeds: a search page becomes its RSS feed, named from its filters; suggest
         ['https://djinni.co/jobs/rss/?primary_keyword=Golang', 'https://jobs.dou.ua/vacancies/feeds/?category=Golang'],
     )
     assert.deepEqual(suggestFeeds(['postgres'], 'backend'), [])
+
+    // Djinni's experience filter: from the level's start to a year beyond the CV's experience
+    assert.deepEqual(djinniExperience('senior', 6.5), ['3y', '4y', '5y', '6y', '7y'])
+    assert.deepEqual(djinniExperience('senior', 14), ['3y', '4y', '5y', '6y', '7y', '8y', '9y', '10y'])
+    assert.deepEqual(djinniExperience('senior', null).length, 8, 'no CV: 3 years and up')
+    assert.deepEqual(djinniExperience('junior', 0.5), ['no_exp', '1y'])
+    assert.deepEqual(djinniExperience('middle', 0), ['1y'], 'a level picked above the CV: at least its start')
+    const senior = suggestFeeds(['react'], 'frontend', djinniExperience('senior', 6.5))
+    assert.equal(
+        senior[0].url,
+        'https://djinni.co/jobs/rss/?primary_keyword=React.js&exp_level=3y&exp_level=4y&exp_level=5y&exp_level=6y&exp_level=7y',
+    )
+    assert.equal(senior[0].name, 'Djinni · React.js · досвід 3–7 р.')
+    assert.ok(!senior.some((f) => f.url.includes('dou.ua') && f.url.includes('exp')), 'DOU feeds unchanged')
+    assert.equal(
+        feedName('https://djinni.co/jobs/rss/?primary_keyword=Golang&exp_level=5y&exp_level=10y'),
+        'Djinni · Golang · досвід 5–10+ р.',
+    )
 
     // A feed that's already a source keeps its id; a new Djinni feed reads job pages for the company
     const existing = [{ id: 'dou-old', name: 'Мій DOU', url: go[1].url, enabled: false }]

@@ -2,7 +2,7 @@ import { render } from 'preact'
 import { useEffect, useState } from 'preact/hooks'
 import { analyzeCv, experienceYears } from '../core/cv'
 import { MAX_SOURCES } from '../core/defaults'
-import { suggestFeeds, toSources } from '../core/feeds'
+import { djinniExperience, suggestFeeds, toSources } from '../core/feeds'
 import { cvLanguages, type LanguageSkill } from '../core/language'
 import { buildRules, type Direction, type Level, type Profile } from '../core/profile'
 import { t } from '../i18n'
@@ -50,12 +50,12 @@ function guessPrefs(rows: TechRow[], years: number | null, languages: LanguageSk
  * Feeds suggested from the stack, heaviest techs first. The current sources aren't offered: running the wizard again
  * (a backend CV after a frontend one) starts over
  */
-function guessFeeds(rows: TechRow[], prefs: Prefs): FeedRow[] {
+function guessFeeds(rows: TechRow[], prefs: Prefs, years: number | null): FeedRow[] {
     const stack = rows
         .filter((r) => r.include && Number(r.weight) > 0)
         .sort((a, b) => Number(b.weight) - Number(a.weight))
         .map((r) => r.tech.id)
-    return suggestFeeds(stack, prefs.direction)
+    return suggestFeeds(stack, prefs.direction, djinniExperience(prefs.level, years))
 }
 
 function App() {
@@ -73,6 +73,8 @@ function App() {
     const [avoid, setAvoid] = useState<string[]>([])
     const [prefs, setPrefs] = useState<Prefs>()
     const [feeds, setFeeds] = useState<FeedRow[]>()
+    /** What the suggested feeds were made for: going back and changing the stack, direction or level makes them again */
+    const [feedsFor, setFeedsFor] = useState('')
     const [sites, setSites] = useState<Platform[]>(PLATFORMS.map((p) => p.id))
     const [error, setError] = useState('')
 
@@ -107,7 +109,20 @@ function App() {
         const bad = rows.find((r) => r.include && !Number.isFinite(Number(r.weight)))
         if (bad) return setError(t.wizard.badWeight(bad.tech.name))
         setError('')
-        if (!feeds) setFeeds(guessFeeds(rows, prefs!))
+        const madeFor = JSON.stringify([
+            prefs!.direction,
+            prefs!.level,
+            rows.map((r) => [r.tech.id, r.include, r.weight]),
+        ])
+        if (!feeds || madeFor !== feedsFor) {
+            // Pasted feeds and the ticks of feeds suggested again stay
+            const fresh = guessFeeds(rows, prefs!, years).map((f) => {
+                const old = feeds?.find((o) => !o.custom && o.url === f.url)
+                return old ? { ...f, checked: old.checked } : f
+            })
+            setFeeds([...fresh, ...(feeds ?? []).filter((f) => f.custom)])
+            setFeedsFor(madeFor)
+        }
         setStep('sources')
     }
 
