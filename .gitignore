@@ -3,3 +3,4 @@ dist/
 extensions/
 *.zip
 .DS_Store
+.claude/settings.local.json

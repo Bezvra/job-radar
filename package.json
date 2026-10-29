@@ -16,8 +16,8 @@
         "prettierfix": "prettier --write ."
     },
     "keywords": [],
-    "author": "",
-    "license": "ISC",
+    "author": "Roman Bezverhniy",
+    "license": "MIT",
     "devDependencies": {
         "@types/chrome": "^0.3.6",
         "@types/node": "^26.6.5",
