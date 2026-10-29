@@ -7,6 +7,7 @@ import { cvLanguages, type LanguageSkill } from '../core/language'
 import { buildRules, type Direction, type Level, type Profile } from '../core/profile'
 import { t } from '../i18n'
 import { getSettings, saveSettings } from '../services/storage'
+import { LocaleSelect } from './components/LocaleSelect'
 import { type Prefs, PrefsStep } from './components/onboarding/PrefsStep'
 import { chosenFeeds, type FeedRow, SourcesStep } from './components/onboarding/SourcesStep'
 import { type TechRow, TechsStep } from './components/onboarding/TechsStep'
@@ -164,6 +165,16 @@ function App() {
                     <h1>{t.wizard.title}</h1>
                     <div class="status">{t.wizard.intro}</div>
                 </div>
+                {/* Only before the CV: feed names and hints made on later steps would stay in the old language */}
+                {step === 'upload' && (
+                    <div class="locale-pick">
+                        <label for="locale">{t.locale.label}</label>
+                        <LocaleSelect
+                            value={settings.locale}
+                            onChange={(l) => void getSettings().then((s) => saveSettings({ ...s, locale: l }))}
+                        />
+                    </div>
+                )}
             </header>
             <nav class="steps">
                 {STEPS.map((id) => (

@@ -2,7 +2,7 @@
 
 A Chrome extension (Manifest V3) that collects job listings from the Djinni and DOU RSS feeds every few hours, scores each one against your profile, and shows a report sorted into tabs: **Apply**, **Maybe**, **Saved**, **Applied** and **Hidden**. It can also send relevant new jobs to a Telegram bot.
 
-The interface is in Ukrainian and English: it follows the browser's language (Ukrainian for a Ukrainian or Russian browser, English otherwise) and can be switched on the settings page (**Interface language**).
+The interface is in Ukrainian and English: it follows the browser's language (Ukrainian for a Ukrainian or Russian browser, English otherwise) and can be switched on the first step of the setup or on the settings page (**Interface language**).
 
 ## Install
 

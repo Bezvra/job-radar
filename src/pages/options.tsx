@@ -6,8 +6,9 @@ import { diagnostics } from '../core/diagnostics'
 import { DEFAULT_SETTINGS, MAX_SOURCES, MIN_INTERVAL_HOURS } from '../core/defaults'
 import { toFeedUrl } from '../core/feeds'
 import type { Rule, Settings } from '../core/types'
-import { LOCALES, locale, ruleLabel, t } from '../i18n'
+import { locale, ruleLabel, t } from '../i18n'
 import { getJobs, getLastRun, getSettings, saveSettings } from '../services/storage'
+import { LocaleSelect } from './components/LocaleSelect'
 import { ruleProblem, type RuleRow, RulesEditor } from './components/RulesEditor'
 import { sourceProblem, type SourceRow, SourcesEditor } from './components/SourcesEditor'
 import { applyLocale } from './utils'
@@ -305,18 +306,7 @@ function App() {
                             </div>
                             <div>
                                 <label for="locale">{t.locale.label}</label>
-                                <select
-                                    id="locale"
-                                    value={draft.locale}
-                                    onChange={(e) => set('locale', e.currentTarget.value as Settings['locale'])}
-                                >
-                                    <option value="auto">{t.locale.auto}</option>
-                                    {LOCALES.map((l) => (
-                                        <option key={l.id} value={l.id}>
-                                            {l.name}
-                                        </option>
-                                    ))}
-                                </select>
+                                <LocaleSelect value={draft.locale} onChange={(l) => set('locale', l)} />
                             </div>
                         </div>
                         <div class="hint">{t.options.generalHint}</div>
