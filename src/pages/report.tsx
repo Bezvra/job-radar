@@ -4,7 +4,7 @@ import { openIssue } from './feedback'
 import { useState } from 'preact/hooks'
 import { isOpenToApply } from '../core/collect'
 import type { Job, JobStatus, Settings } from '../core/types'
-import { getJobs, getLastRun, getSettings } from '../services/storage'
+import { getJobs, getLastRun, getPaused, getSettings } from '../services/storage'
 import { JobCard } from './components/JobCard'
 import { RunStatus } from './components/RunStatus'
 import { useStorage } from './hooks/useStorage'
@@ -72,6 +72,7 @@ function App() {
     const jobs = useStorage(getJobs)
     const settings = useStorage(getSettings)
     const lastRun = useStorage(getLastRun)
+    const paused = useStorage(getPaused)
     const [tab, setTab] = useState<Tab>('apply')
     const [query, setQuery] = useState('')
     const [platform, setPlatform] = useState(loadPlatform)
@@ -127,6 +128,11 @@ function App() {
                     <div>
                         <h1>IT Job Radar</h1>
                         <RunStatus run={lastRun} />
+                        {paused && (
+                            <a class="paused-tag" href="options.html#general">
+                                ❚❚ {t.report.pausedTag}
+                            </a>
+                        )}
                     </div>
                 </div>
                 <div class="actions">
@@ -150,6 +156,13 @@ function App() {
                     </button>
                 )}
             </nav>
+            {paused && (
+                <div class="notice">
+                    {t.report.paused((s) => (
+                        <a href="options.html#general">{s}</a>
+                    ))}
+                </div>
+            )}
             {!settings.sources.some((s) => s.enabled) && (
                 <div class="notice">
                     {t.report.noSources(

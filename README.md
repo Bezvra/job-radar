@@ -21,6 +21,8 @@ The manifest has a fixed `key`, so every build has the same extension ID (`ncinc
 
 The CV is read in the browser and not stored; settings and jobs stay in this browser's local storage; requests go only to djinni.co, jobs.dou.ua and, if you connect a bot, api.telegram.org. See [PRIVACY.md](PRIVACY.md).
 
+**Settings → General → Поставити на паузу** (Pause) stops the scheduled checks when you aren't looking for a job for a while; the toolbar badge shows ❚❚ on red and the report says so. **Оновити зараз** (Refresh now) and the Telegram buttons still work, and **Відновити пошук** (Resume search) brings the schedule back.
+
 **Settings → General → Backup** saves your settings and the jobs you saved or applied to into a JSON file, and restores them on another computer or after reinstalling. The file contains your Telegram bot token, so keep it to yourself.
 
 ## Feedback

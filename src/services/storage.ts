@@ -33,3 +33,13 @@ export async function getLastRun(): Promise<RunLog | null> {
 export async function saveLastRun(r: RunLog): Promise<void> {
     await chrome.storage.local.set({ lastRun: r })
 }
+
+/** Scheduled refreshes are off while paused (the user's «Пауза»); a refresh asked for by hand still runs */
+export async function getPaused(): Promise<boolean> {
+    const { paused } = await chrome.storage.local.get('paused')
+    return paused === true
+}
+
+export async function savePaused(paused: boolean): Promise<void> {
+    await chrome.storage.local.set({ paused })
+}

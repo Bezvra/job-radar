@@ -672,3 +672,15 @@ button.link {
     cursor: pointer;
     text-decoration: underline;
 }
+
+.paused-tag {
+    display: inline-block;
+    margin-top: 4px;
+    padding: 2px 8px;
+    border-radius: 4px;
+    background: #c62828;
+    color: #fff;
+    font-size: 12px;
+    font-weight: 600;
+    text-decoration: none;
+}

@@ -12,6 +12,7 @@ export interface DiagnosticsInput {
         newRelevant: number
     } | null
     alarm: { scheduledTime: number; periodInMinutes?: number } | null
+    paused?: boolean
     now?: Date
 }
 
@@ -33,7 +34,7 @@ export function diagnostics(d: DiagnosticsInput): string {
         `Language: ${s.locale} (browser ${d.browserLanguage})`,
         `Generated: ${now.toISOString()}`,
         '',
-        `Refresh: every ${s.intervalHours} h; next ${
+        `Refresh: every ${s.intervalHours} h${d.paused ? ', PAUSED' : ''}; next ${
             d.alarm
                 ? `${new Date(d.alarm.scheduledTime).toISOString()} (in ${minutes(d.alarm.scheduledTime - now.getTime())}, period ${d.alarm.periodInMinutes} min)`
                 : 'not scheduled'

@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import { beforeEach, test } from 'node:test'
-import { alarms, fetched, listeners, notifications, posted, reset, responses, send, store } from './chrome'
+import { alarms, badge, fetched, listeners, notifications, posted, reset, responses, send, store } from './chrome'
 import '../src/background'
 import { MAX_SOURCES } from '../src/core/defaults'
 import { jobKey } from '../src/services/telegram'
@@ -200,4 +200,23 @@ test('worker: a button pressed in Telegram sets the job’s status and redraws i
     assert.ok(alarms.has('job-radar-telegram'), 'the watchdog alarm runs while Telegram is set up')
     await send({ type: 'settings-changed' })
     assert.ok(!alarms.has('job-radar-telegram'), 'and goes when it isn’t')
+})
+
+test('worker: a pause stops the scheduled refresh, resuming brings it back; a refresh by hand still runs', async () => {
+    store.settings = settings()
+    responses.set(source('React.js').url, feed(1))
+    await send({ type: 'settings-changed' })
+    assert.ok(alarms.has(ALARM))
+
+    await send({ type: 'set-paused', paused: true })
+    assert.equal(store.paused, true)
+    assert.ok(!alarms.has(ALARM), 'no scheduled refresh while paused')
+    assert.equal(badge.text, '❚❚')
+    await send({ type: 'settings-changed' })
+    assert.ok(!alarms.has(ALARM), 'saving the settings keeps the pause')
+    assert.equal((await send({ type: 'refresh' })).results[0].count, 1)
+
+    await send({ type: 'set-paused', paused: false })
+    assert.equal(alarms.get(ALARM)?.periodInMinutes, SETTINGS.intervalHours * 60)
+    assert.equal(badge.text, '1', 'the count is back')
 })

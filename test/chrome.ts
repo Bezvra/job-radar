@@ -6,6 +6,8 @@ type Listener = (...args: any[]) => unknown
 
 export const store: Record<string, unknown> = {}
 export const alarms = new Map<string, chrome.alarms.Alarm>()
+/** What the toolbar badge shows */
+export const badge = { text: '' }
 export const listeners: Record<string, Listener> = {}
 export const notifications: string[] = []
 export const fetched: string[] = []
@@ -48,7 +50,12 @@ const fakeChrome = {
         create: (options: { message: string }) => void notifications.push(options.message),
         onClicked: on('notificationClicked'),
     },
-    action: { setBadgeText: async () => {}, setBadgeBackgroundColor: async () => {} },
+    action: {
+        setBadgeText: async ({ text }: { text: string }) => void (badge.text = text),
+        setBadgeBackgroundColor: async () => {},
+        setTitle: async () => {},
+    },
+    i18n: { getMessage: (name: string) => name },
     tabs: { create: async () => {} },
 }
 
@@ -78,6 +85,7 @@ export const send = (msg: object) =>
 export function reset(): void {
     for (const key of Object.keys(store)) delete store[key]
     alarms.clear()
+    badge.text = ''
     responses.clear()
     fetched.length = 0
     posted.length = 0

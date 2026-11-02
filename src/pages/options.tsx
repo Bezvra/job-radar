@@ -6,7 +6,8 @@ import { DEFAULT_SETTINGS, MAX_SOURCES, MIN_INTERVAL_HOURS } from '../core/defau
 import { toFeedUrl } from '../core/feeds'
 import type { Rule, Settings } from '../core/types'
 import { locale, ruleLabel, t } from '../i18n'
-import { getJobs, getSettings, saveSettings } from '../services/storage'
+import { getJobs, getPaused, getSettings, saveSettings } from '../services/storage'
+import { useStorage } from './hooks/useStorage'
 import { LocaleSelect } from './components/LocaleSelect'
 import { ruleProblem, type RuleRow, RulesEditor } from './components/RulesEditor'
 import { sourceProblem, type SourceRow, SourcesEditor } from './components/SourcesEditor'
@@ -127,6 +128,8 @@ function App() {
     const [msg, setMsg] = useState('')
     const [tgMsg, setTgMsg] = useState('')
     const [diagMsg, setDiagMsg] = useState('')
+    // Not in the draft: it applies at once, and a later Save can't undo it
+    const paused = useStorage(getPaused)
 
     const openTab = (t: Tab) => {
         setTab(t)
@@ -254,6 +257,19 @@ function App() {
 
             {tab === 'general' && (
                 <>
+                    <fieldset>
+                        <legend>{t.options.search}</legend>
+                        <div class="hint">
+                            {paused ? t.options.searchPaused : t.options.searchOn(Number(draft.intervalHours))}
+                        </div>
+                        <button
+                            style={{ marginTop: 8 }}
+                            onClick={() => void chrome.runtime.sendMessage({ type: 'set-paused', paused: !paused })}
+                        >
+                            {paused ? t.options.resume : t.options.pause}
+                        </button>
+                    </fieldset>
+
                     <fieldset>
                         <legend>{t.options.general}</legend>
                         <div class="row">

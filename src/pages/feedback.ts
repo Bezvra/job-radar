@@ -1,14 +1,15 @@
 import { diagnostics } from '../core/diagnostics'
 import { issueUrl } from '../core/feedback'
-import { getJobs, getLastRun, getSettings } from '../services/storage'
+import { getJobs, getLastRun, getPaused, getSettings } from '../services/storage'
 
 /** The diagnostics report (core/diagnostics.ts) from what's stored now */
 export async function collectDiagnostics(): Promise<string> {
-    const [settings, jobs, lastRun, alarm] = await Promise.all([
+    const [settings, jobs, lastRun, alarm, paused] = await Promise.all([
         getSettings(),
         getJobs(),
         getLastRun(),
         chrome.alarms.get('job-radar-refresh'),
+        getPaused(),
     ])
     return diagnostics({
         version: chrome.runtime.getManifest().version,
@@ -18,6 +19,7 @@ export async function collectDiagnostics(): Promise<string> {
         jobs,
         lastRun,
         alarm: alarm ?? null,
+        paused,
     })
 }
 

@@ -1,4 +1,14 @@
-import { getLastRun, getSettings, getJobs, saveJobs, saveLastRun, saveSettings, type RunLog } from './services/storage'
+import {
+    getLastRun,
+    getPaused,
+    getSettings,
+    getJobs,
+    saveJobs,
+    saveLastRun,
+    savePaused,
+    saveSettings,
+    type RunLog,
+} from './services/storage'
 import {
     addPageJob,
     isRelevant,
@@ -62,6 +72,8 @@ async function schedule(): Promise<void> {
         chrome.alarms.get(ALARM),
     ])
     await schedulePolling()
+    // Paused: no scheduled refresh; resuming times the next one from the last run, so an overdue one comes in a minute
+    if (await getPaused()) return void (await chrome.alarms.clear(ALARM))
     const period = Math.max(MIN_INTERVAL_HOURS, intervalHours) * 60
     if (alarm?.periodInMinutes === period) return
     const sinceLast = lastRun ? (Date.now() - Date.parse(lastRun.at)) / 60_000 : Infinity
@@ -168,8 +180,12 @@ const FETCH_TIMEOUT = 30_000
 async function updateBadge(): Promise<void> {
     const [jobs, settings] = await Promise.all([getJobs(), getSettings()])
     const n = Object.values(jobs).filter((j) => j.status === 'new' && isRelevant(j, settings)).length
-    await chrome.action.setBadgeText({ text: n ? String(n) : '' })
-    await chrome.action.setBadgeBackgroundColor({ color: '#2f7d4f' })
+    // Paused: a pause sign on red instead of the count, so a search left off isn't forgotten (the report has the count)
+    const paused = await getPaused()
+    applyLocale(settings)
+    await chrome.action.setBadgeText({ text: paused ? '❚❚' : n ? String(n) : '' })
+    await chrome.action.setBadgeBackgroundColor({ color: paused ? '#c62828' : '#2f7d4f' })
+    await chrome.action.setTitle({ title: paused ? t.common.pausedTitle : chrome.i18n.getMessage('actionTitle') })
 }
 
 const PAGE_CHECKS_PER_RUN = 20
@@ -298,7 +314,10 @@ chrome.runtime.onInstalled.addListener(({ reason }) => {
     }
     if (reason === chrome.runtime.OnInstalledReason.UPDATE) void upgradeAndRescore()
 })
-chrome.runtime.onStartup.addListener(() => void schedule())
+chrome.runtime.onStartup.addListener(() => {
+    void schedule()
+    void updateBadge() // the badge isn't kept across browser restarts
+})
 chrome.alarms.onAlarm.addListener((a) => {
     if (a.name === ALARM) void refreshOnce()
     if (a.name === POLL_ALARM) void pollTelegram()
@@ -310,6 +329,15 @@ chrome.notifications.onClicked.addListener(() => chrome.tabs.create({ url: chrom
 chrome.runtime.onMessage.addListener((msg, _sender, reply) => {
     if (msg?.type === 'refresh') {
         refreshOnce().then(reply)
+        return true
+    }
+    if (msg?.type === 'set-paused') {
+        ;(async () => {
+            await savePaused(msg.paused === true)
+            await schedule()
+            await updateBadge()
+            reply({ ok: true })
+        })()
         return true
     }
     if (msg?.type === 'settings-changed') {

@@ -15,6 +15,7 @@ const name = (id: string) => LANGUAGE_NAMES[id as keyof typeof LANGUAGE_NAMES] ?
 
 export const en: Messages = {
     common: {
+        pausedTitle: 'IT Job Radar: search is paused (resume it in the settings)',
         save: 'Save',
         applied: 'Applied ✓',
         hide: 'Hide',
@@ -42,6 +43,12 @@ export const en: Messages = {
         tabs: { apply: 'Apply', maybe: 'Maybe', saved: 'Saved', applied: 'Applied', hidden: 'Hidden' },
         refresh: 'Refresh now',
         refreshing: 'Refreshing…',
+        pausedTag: 'Search paused',
+        paused: (settings: Wrap) => [
+            'Search is paused: feeds aren’t checked on the schedule. “Refresh now” still works. Resume it in the ',
+            settings('settings'),
+            '.',
+        ],
         markSeen: (n: number) => `Mark as seen (${n})`,
         noSources: (wizard: Wrap, settings: Wrap) => [
             'No job sources yet. ',
@@ -134,6 +141,12 @@ export const en: Messages = {
         maxAge: 'Not older than, days',
         minSalary: 'Salary from, $/month',
         interval: 'Refresh every, hours',
+        search: 'Search',
+        searchOn: (hours: number) => `Feeds are checked every ${hours} h.`,
+        searchPaused:
+            'Paused: feeds aren’t checked on the schedule, so there are no new notifications or Telegram messages. “Refresh now” in the report and the Telegram buttons still work.',
+        pause: 'Pause',
+        resume: 'Resume search',
         generalHint:
             'Older jobs and jobs whose salary’s upper bound is below your minimum don’t go to “Apply” or “Maybe”, aren’t sent to Telegram and wait under “Hidden”. Jobs without a salary are shown. An hourly rate counts as ×160 hours, hryvnias and euros at a rough rate. Saved jobs and jobs you applied to always stay.',
         notify: 'Chrome notifications about new relevant jobs',
