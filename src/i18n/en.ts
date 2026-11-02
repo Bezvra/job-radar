@@ -302,6 +302,10 @@ export const en: Messages = {
         minSalary: 'At least, $/month',
         salaryHint:
             'Jobs whose salary’s upper bound is lower go under “Hidden”. Jobs without a salary or with “from …” are shown. An hourly rate counts as ×160 hours.',
+        employment: 'Employment',
+        employments: { full: 'Full-time', any: 'Either', part: 'I want part-time' },
+        employmentHint: (penalty: number, bonus: number) =>
+            `Part-time means “part-time”, “20–30 hours per week” and the same in Ukrainian. With “Full-time” such jobs get ${penalty}, except those that can grow into full-time; with “I want part-time”, +${bonus}.`,
         company: 'Company',
         companyTypes: { product: 'Product / startup', outsource: 'Outsource / outstaff', any: 'Doesn’t matter' },
         fullstackNo: 'Not interested',
@@ -348,6 +352,7 @@ export const en: Messages = {
         noRemote: () => 'Office/hybrid, no remote',
         relocation: () => 'Relocation',
         relocationRequired: () => 'Relocation required',
+        partTime: () => 'Part-time',
         product: () => 'Product/startup',
         outsource: () => 'Outsource/outstaff',
         fullstackNotWith: (techs: string) => `Full stack, not with ${techs}`,

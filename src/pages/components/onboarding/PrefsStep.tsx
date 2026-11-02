@@ -1,4 +1,12 @@
-import { AI_TOOLS_WEIGHT, type CompanyType, type Direction, type Level, type Profile } from '../../../core/profile'
+import {
+    AI_TOOLS_WEIGHT,
+    PART_TIME_WEIGHT,
+    type CompanyType,
+    type Direction,
+    type Employment,
+    type Level,
+    type Profile,
+} from '../../../core/profile'
 import { LANGUAGE_WEIGHT, LANGUAGES, LEVEL_NAMES } from '../../../core/language'
 import { TECHS } from '../../../core/techs'
 import { t } from '../../../i18n'
@@ -25,6 +33,7 @@ const LEVELS: { id: Level; label: string }[] = [
     { id: 'senior', label: 'Senior' },
 ]
 const COMPANY_TYPES: CompanyType[] = ['product', 'outsource', 'any']
+const EMPLOYMENTS: Employment[] = ['full', 'any', 'part']
 
 function Radios<T extends string>(props: { options: { id: T; label: string }[]; value: T; onChange: (v: T) => void }) {
     return (
@@ -207,6 +216,16 @@ export function PrefsStep({ prefs, onChange }: Props) {
                 )}
                 {!prefs.languages.length && <div class="hint">{t.prefs.noLanguages(LANGUAGE_WEIGHT)}</div>}
                 <div class="hint">{t.prefs.languagesHint(LANGUAGE_WEIGHT)}</div>
+            </fieldset>
+
+            <fieldset>
+                <legend>{t.prefs.employment}</legend>
+                <Radios
+                    options={EMPLOYMENTS.map((id) => ({ id, label: t.prefs.employments[id] }))}
+                    value={prefs.employment}
+                    onChange={(v) => set('employment', v)}
+                />
+                <div class="hint">{t.prefs.employmentHint(PART_TIME_WEIGHT.full, PART_TIME_WEIGHT.part)}</div>
             </fieldset>
 
             <fieldset>

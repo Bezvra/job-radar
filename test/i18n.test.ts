@@ -22,6 +22,7 @@ const profile: Profile = {
     languages: [{ id: 'en', level: 4 }],
     formats: { remote: true, hybrid: true, office: true, relocation: false },
     city: 'Одеса',
+    employment: 'full',
     companyType: 'product',
     fullstackAllowed: null,
 }

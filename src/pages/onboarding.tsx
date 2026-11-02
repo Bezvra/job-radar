@@ -40,6 +40,7 @@ function guessPrefs(rows: TechRow[], years: number | null, languages: LanguageSk
         languages,
         formats: { remote: true, hybrid: false, office: false, relocation: false },
         city: '',
+        employment: 'full',
         companyType: 'any',
         fullstackAllowed: null,
         // Re-running the wizard keeps the salary already set

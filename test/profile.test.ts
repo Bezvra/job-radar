@@ -17,6 +17,7 @@ test('profile turns into rules: level, leads, formats, full stack', () => {
         languages: [],
         formats: { remote: true, hybrid: true, office: false, relocation: false },
         city: 'Одеса, Odesa',
+        employment: 'full',
         companyType: 'product',
         fullstackAllowed: ['dotnet'],
     })
@@ -52,6 +53,7 @@ test('profile turns into rules: level, leads, formats, full stack', () => {
         languages: [],
         formats: { remote: false, hybrid: false, office: true, relocation: true },
         city: '',
+        employment: 'full',
         companyType: 'any',
         fullstackAllowed: [],
     })
@@ -80,6 +82,7 @@ test('office or hybrid elsewhere is penalized; Staff/Principal is its own choice
         languages: [],
         formats: { remote: true, hybrid: true, office: false, relocation: false },
         city: 'Одеса, Odesa',
+        employment: 'full' as const,
         companyType: 'any' as const,
         fullstackAllowed: null,
     }
@@ -127,6 +130,7 @@ test('AI coding tools: a bonus only when the user wants them, not for building A
         languages: [],
         formats: { remote: true, hybrid: false, office: false, relocation: false },
         city: '',
+        employment: 'full',
         companyType: 'any',
         fullstackAllowed: null,
     }
@@ -159,6 +163,7 @@ test('office means an office: not "Officer", back-office or home office; old sav
         languages: [],
         formats: { remote: true, hybrid: true, office: true, relocation: false },
         city: 'Одеса',
+        employment: 'full',
         companyType: 'any',
         fullstackAllowed: null,
     }
@@ -258,5 +263,50 @@ test('office means an office: not "Officer", back-office or home office; old sav
     assert.ok(
         scoreJob('Engineer', 'Office in Odesa', respelled).reasons.some((r) => r.label === 'Офіс: Одеса'),
         'an English job in Odesa now counts',
+    )
+})
+
+test('part-time: penalized for full-time seekers unless it can grow into full-time, a bonus for those who want it', () => {
+    const profile: Profile = {
+        techs: [{ id: 'react', weight: 15 }],
+        unwanted: [],
+        direction: 'frontend',
+        level: 'senior',
+        teamLead: false,
+        techLead: false,
+        staff: false,
+        aiTools: false,
+        languages: [],
+        formats: { remote: true, hybrid: false, office: false, relocation: false },
+        city: '',
+        employment: 'full',
+        companyType: 'any',
+        fullstackAllowed: null,
+    }
+    const weight = (desc: string, p = profile) =>
+        scoreJob('Senior React Developer', desc, buildRules(p)).reasons.find((r) => r.label === 'Part-time')?.weight
+    for (const desc of [
+        'Part-time contract, React',
+        'A part time role',
+        'about 20-30 hours per week',
+        'up to 20 hours a week',
+        'Часткова зайнятість, віддалено',
+        'неповний робочий день',
+        '20 годин на тиждень',
+    ])
+        assert.equal(weight(desc), -20, desc)
+    for (const desc of ['Full-time, 40 hours per week', 'React, remote', '30-40 hours per week'])
+        assert.equal(weight(desc), undefined, desc)
+    // The Empat job on DOU: part-time to start, full-time later
+    assert.equal(
+        weight('part-time consultant, 20-30 hours per week, with the option to grow from part-time to full-time'),
+        undefined,
+    )
+    assert.equal(weight('Part-time / full-time'), undefined)
+    assert.equal(weight('Part-time contract', { ...profile, employment: 'part' }), 10)
+    assert.equal(weight('Part-time contract', { ...profile, employment: 'any' }), undefined)
+    // Either way the choice is a rule on the Filters tab
+    assert.ok(
+        buildRules({ ...profile, employment: 'any' }).some((r) => r.labelKey?.id === 'partTime' && r.weight === 0),
     )
 })

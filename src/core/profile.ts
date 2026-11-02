@@ -5,6 +5,8 @@ import type { Rule } from './types'
 
 export type Level = 'junior' | 'middle' | 'senior'
 export type CompanyType = 'product' | 'outsource' | 'any'
+/** full: part-time jobs are penalized; any: the rule is kept at weight 0 to stay visible; part: they get a bonus */
+export type Employment = 'full' | 'any' | 'part'
 export type Direction = Extract<TechCategory, 'frontend' | 'backend' | 'mobile'>
 
 /** Answers from the onboarding wizard; turned into scoring rules by buildRules */
@@ -27,6 +29,7 @@ export interface Profile {
     formats: { remote: boolean; hybrid: boolean; office: boolean; relocation: boolean }
     /** City for office/hybrid, comma-separated spellings allowed: "Одеса, Odesa" */
     city: string
+    employment: Employment
     companyType: CompanyType
     /** null: full stack roles aren't wanted; otherwise tech ids that make a full stack role acceptable */
     fullstackAllowed: string[] | null
@@ -70,6 +73,18 @@ export const AI_TOOLS_PATTERN =
     'ai (coding|development|dev) (tools?|assistants?|agents?)|' +
     'ai (tools?|assistants?|agents?)( and agents)? (in|for|into|as) (your |our |the |daily |day-to-day |a real part of )*(development|coding|workflow|engineering|work)|' +
     'coding (agents?|assistants?)|agentic (coding|development))\\b'
+
+export const PART_TIME_WEIGHT = { full: -20, part: 10 }
+/** 10–35 hours a week, alone or as a range: "20-30 hours per week", "до 20 годин на тиждень"; 40 is full-time */
+const WEEK_HOURS = '(1\\d|2\\d|3[0-5])'
+/** Part-time: "part-time", "half-time", "20-30 hours per week", "часткова/неповна зайнятість", "неповний робочий день" */
+export const PART_TIME_PATTERN =
+    'part[- ]?time|half[- ]time|' +
+    `\\b${WEEK_HOURS}(\\s*(-|–|—|to|до)\\s*${WEEK_HOURS})?\\s*(hours?|hrs|h|годин[а-яіїєґ]*|часов)\\s*(a|per|/|на|в)\\s*(week|wk|тиждень|неделю)|` +
+    'частков[а-яіїєґ]* зайнят|частичн[а-я]* занят|неповн[а-яіїєґ]* (зайнят|робоч)|неполн[а-я]* (занят|рабоч)'
+/** A part-time start that can become full-time, or either one offered: no penalty for someone who wants full-time */
+const OR_FULL_TIME =
+    '(\\bto|into|become|\\bor|/)\\s*full[- ]?time|full[- ]?time\\s*(/|or|або|чи)\\s*part|на повн[а-яіїєґ]* (зайнят|ставк|день)'
 
 const DAYS = '\\d\\s*(days?|дн[а-яіїєґ]*)'
 const PER_WEEK = '(\\s*(a|per|на|в)\\s+(week|тиждень))?'
@@ -365,6 +380,14 @@ export function buildRules(p: Profile): Rule[] {
     } else {
         add({ pattern: 'relocation required|обов.язков\\w* релокац', weight: -25, ...labelled('relocationRequired') })
     }
+
+    // Pushed even at weight 0, like the formats: the choice stays visible and editable on the Filters tab
+    rules.push({
+        pattern: PART_TIME_PATTERN,
+        weight: p.employment === 'any' ? 0 : PART_TIME_WEIGHT[p.employment],
+        ...labelled('partTime'),
+        ...(p.employment === 'full' && { unless: OR_FULL_TIME }),
+    })
 
     if (p.companyType === 'product') {
         add({

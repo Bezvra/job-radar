@@ -300,6 +300,10 @@ export const uk = {
         minSalary: 'Не менше ніж, $/міс',
         salaryHint:
             'Вакансії, де верхня межа зарплати нижча, підуть у «Сховані». Без зарплати або «від …» — показуються. Погодинна ставка рахується як ×160 год.',
+        employment: 'Зайнятість',
+        employments: { full: 'Повна', any: 'Будь-яка', part: 'Хочу part-time' },
+        employmentHint: (penalty: number, bonus: number) =>
+            `Part-time — це «part-time», «20–30 hours per week», «часткова зайнятість». З «Повною» такі вакансії отримають ${penalty}, крім тих, де можна перейти на full-time; з «Хочу part-time» — +${bonus}.`,
         company: 'Компанія',
         companyTypes: { product: 'Продукт / стартап', outsource: 'Аутсорс / аутстаф', any: 'Не важливо' },
         fullstackNo: 'Не розглядаю',
@@ -347,6 +351,7 @@ export const uk = {
         noRemote: () => 'Офіс/гібрид без віддаленки',
         relocation: () => 'Релокація',
         relocationRequired: () => 'Обов’язкова релокація',
+        partTime: () => 'Part-time',
         product: () => 'Продукт/стартап',
         outsource: () => 'Аутсорс/аутстаф',
         fullstackNotWith: (techs: string) => `Full stack не з ${techs}`,
