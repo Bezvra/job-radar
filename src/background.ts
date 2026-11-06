@@ -177,6 +177,38 @@ async function pollTelegram(): Promise<void> {
 /** A hung request would hold the refresh (and every later one) until Chrome kills the worker */
 const FETCH_TIMEOUT = 30_000
 
+/** Before retrying a request that got no response at all */
+const RETRY_PAUSE = 5000
+
+/** How long a refresh waits for the network to come back, in 1s checks */
+const ONLINE_WAIT_CHECKS = 60
+
+/**
+ * An alarm missed while the computer slept fires right on wake, often before Wi-Fi or a VPN is up. Wait (at most a
+ * minute) while the browser says it's offline; then the requests go anyway and their errors are logged as usual.
+ * `navigator.onLine` false is reliable, true only means some network interface is up, hence the retry in fetchFeed.
+ */
+async function waitOnline(): Promise<void> {
+    for (let i = 0; i < ONLINE_WAIT_CHECKS && navigator.onLine === false; i++)
+        await new Promise((r) => setTimeout(r, 1000))
+}
+
+/**
+ * Fetch a feed, once more after a network error ("Failed to fetch": no response, e.g. the network not back yet on wake
+ * from sleep, or a dropped connection). HTTP errors and timeouts aren't retried.
+ */
+async function fetchFeed(url: string): Promise<Response> {
+    const get = () => fetch(url, { credentials: 'omit', cache: 'no-store', signal: AbortSignal.timeout(FETCH_TIMEOUT) })
+    try {
+        return await get()
+    } catch (e) {
+        if (!(e instanceof TypeError)) throw e
+        await new Promise((r) => setTimeout(r, RETRY_PAUSE))
+        await waitOnline()
+        return get()
+    }
+}
+
 async function updateBadge(): Promise<void> {
     const [jobs, settings] = await Promise.all([getJobs(), getSettings()])
     const n = Object.values(jobs).filter((j) => j.status === 'new' && isRelevant(j, settings)).length
@@ -237,14 +269,11 @@ async function refresh(): Promise<RunLog> {
     const log: RunLog = { at: new Date().toISOString(), results: [], newRelevant: 0 }
 
     const relevant: Job[] = []
+    await waitOnline()
     // The pages refuse to save more; settings from before that limit are cut here
     for (const src of settings.sources.filter((s) => s.enabled).slice(0, MAX_SOURCES)) {
         try {
-            const res = await fetch(src.url, {
-                credentials: 'omit',
-                cache: 'no-store',
-                signal: AbortSignal.timeout(FETCH_TIMEOUT),
-            })
+            const res = await fetchFeed(src.url)
             if (!res.ok) throw new Error(`HTTP ${res.status}`)
             const xml = await res.text()
             const { added, count } = mergeFeed(jobs, xml, src.id, settings)

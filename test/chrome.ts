@@ -15,6 +15,8 @@ export const fetched: string[] = []
 export const posted: { url: string; body: any }[] = []
 /** URL → response body, or a function of the POST body making it; a URL missing here gets a 404 */
 export const responses = new Map<string, string | ((body: any) => string)>()
+/** URL → how many of its next requests fail with a network error (no response), as fetch does offline */
+export const networkErrors = new Map<string, number>()
 
 const on = (name: string) => ({ addListener: (fn: Listener) => (listeners[name] = fn) })
 
@@ -66,10 +68,22 @@ globalThis.fetch = (async (input: string | URL, init?: RequestInit) => {
     fetched.push(url)
     const sent = init?.body ? JSON.parse(String(init.body)) : undefined
     if (sent) posted.push({ url, body: sent })
+    const failures = networkErrors.get(url) ?? 0
+    if (failures > 0) {
+        networkErrors.set(url, failures - 1)
+        throw new TypeError('Failed to fetch')
+    }
     const response = responses.get(url)
     const body = typeof response === 'function' ? response(sent) : response
     return new Response(body ?? '', { status: body === undefined ? 404 : 200 })
 }) as typeof fetch
+
+/** `navigator.onLine` reads false this many more times (each read counts), then true */
+export const network = { offlineReads: 0 }
+Object.defineProperty(globalThis.navigator, 'onLine', {
+    configurable: true,
+    get: () => (network.offlineReads > 0 ? (network.offlineReads--, false) : true),
+})
 
 // The worker pauses between requests to be polite (1.5s, 0.7s); not needed against fake responses
 const realSetTimeout = globalThis.setTimeout
@@ -87,6 +101,8 @@ export function reset(): void {
     alarms.clear()
     badge.text = ''
     responses.clear()
+    networkErrors.clear()
+    network.offlineReads = 0
     fetched.length = 0
     posted.length = 0
     notifications.length = 0

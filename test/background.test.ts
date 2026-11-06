@@ -1,6 +1,19 @@
 import assert from 'node:assert/strict'
 import { beforeEach, test } from 'node:test'
-import { alarms, badge, fetched, listeners, notifications, posted, reset, responses, send, store } from './chrome'
+import {
+    alarms,
+    badge,
+    fetched,
+    listeners,
+    network,
+    networkErrors,
+    notifications,
+    posted,
+    reset,
+    responses,
+    send,
+    store,
+} from './chrome'
 import '../src/background'
 import { MAX_SOURCES } from '../src/core/defaults'
 import { jobKey } from '../src/services/telegram'
@@ -65,6 +78,44 @@ test('worker: fetches no more than MAX_SOURCES enabled feeds, even from older se
     await send({ type: 'refresh' })
     assert.equal(fetched.length, MAX_SOURCES)
     assert.ok(!fetched.includes(source('off').url))
+})
+
+test('worker: a feed that gets no response is tried once more', async () => {
+    store.settings = settings({ sources: [source('React.js')] })
+    responses.set(source('React.js').url, feed(1))
+    networkErrors.set(source('React.js').url, 1)
+
+    const log = await send({ type: 'refresh' })
+
+    assert.deepEqual(log.results[0], { sourceId: 'React.js', name: 'React.js', ok: true, count: 1 })
+    assert.equal(fetched.filter((u) => u === source('React.js').url).length, 2)
+})
+
+test('worker: a feed failing twice is reported; HTTP errors aren’t retried', async () => {
+    store.settings = settings({ sources: [source('React.js'), source('JavaScript')] })
+    networkErrors.set(source('React.js').url, 2)
+
+    const log = await send({ type: 'refresh' })
+
+    assert.equal(log.results[0].ok, false)
+    assert.match(log.results[0].error, /Failed to fetch/)
+    assert.equal(log.results[1].error, 'Error: HTTP 404')
+    assert.equal(fetched.filter((u) => u === source('JavaScript').url).length, 1)
+})
+
+test('worker: a refresh waits while the browser is offline, and gives up after a minute', async () => {
+    store.settings = settings({ sources: [source('React.js')] })
+    responses.set(source('React.js').url, feed(1))
+
+    network.offlineReads = 3
+    const log = await send({ type: 'refresh' })
+    assert.equal(network.offlineReads, 0, 'checked until online')
+    assert.equal(log.results[0].ok, true)
+
+    network.offlineReads = 1000
+    await send({ type: 'refresh' })
+    assert.equal(network.offlineReads, 1000 - 60, 'stopped checking after 60 tries')
+    assert.equal(fetched.filter((u) => u === source('React.js').url).length, 2, 'and fetched anyway')
 })
 
 test('worker: a status set while a refresh runs survives its final write', async () => {
