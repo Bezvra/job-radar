@@ -15,8 +15,12 @@ export const fetched: string[] = []
 export const posted: { url: string; body: any }[] = []
 /** URL → response body, or a function of the POST body making it; a URL missing here gets a 404 */
 export const responses = new Map<string, string | ((body: any) => string)>()
-/** URL → how many of its next requests fail with a network error (no response), as fetch does offline */
-export const networkErrors = new Map<string, number>()
+/** URL → errors its next requests throw instead of answering, in order (see offline() and timedOut()) */
+export const networkErrors = new Map<string, Error[]>()
+/** What fetch throws with no response at all, e.g. offline */
+export const offline = () => new TypeError('Failed to fetch')
+/** What fetch throws when AbortSignal.timeout fires */
+export const timedOut = () => new DOMException('signal timed out', 'TimeoutError')
 
 const on = (name: string) => ({ addListener: (fn: Listener) => (listeners[name] = fn) })
 
@@ -68,11 +72,8 @@ globalThis.fetch = (async (input: string | URL, init?: RequestInit) => {
     fetched.push(url)
     const sent = init?.body ? JSON.parse(String(init.body)) : undefined
     if (sent) posted.push({ url, body: sent })
-    const failures = networkErrors.get(url) ?? 0
-    if (failures > 0) {
-        networkErrors.set(url, failures - 1)
-        throw new TypeError('Failed to fetch')
-    }
+    const error = networkErrors.get(url)?.shift()
+    if (error) throw error
     const response = responses.get(url)
     const body = typeof response === 'function' ? response(sent) : response
     return new Response(body ?? '', { status: body === undefined ? 404 : 200 })

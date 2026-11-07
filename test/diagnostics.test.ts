@@ -43,6 +43,31 @@ test('diagnostics: what a bug report needs, and nothing personal', () => {
         assert.ok(!text.includes(secret), secret)
 })
 
+test('diagnostics: an earlier failed run is shown under the last one, unless it is the last one', () => {
+    const run = (minutesAgo: number, error?: string) => ({
+        at: new Date(NOW.getTime() - minutesAgo * 60_000).toISOString(),
+        results: [{ name: 'Djinni · React.js', ok: !error, count: error ? 0 : 4, error }],
+        newRelevant: 0,
+    })
+    const base = {
+        version: '0.4.14',
+        userAgent: 'Chrome/156',
+        browserLanguage: 'uk-UA',
+        settings: SETTINGS,
+        jobs: {},
+        alarm: null,
+        now: NOW,
+    }
+    const failed = run(10, 'TimeoutError: signal timed out')
+    const text = diagnostics({ ...base, lastRun: run(2), lastFailedRun: failed })
+    assert.ok(text.includes('ok  Djinni · React.js: 4'))
+    assert.ok(text.includes(`Last failed run: ${failed.at} (10 min ago)`))
+    assert.ok(text.includes('ERR Djinni · React.js: 0 (TimeoutError: signal timed out)'))
+
+    const same = diagnostics({ ...base, lastRun: failed, lastFailedRun: failed })
+    assert.ok(!same.includes('Last failed run'))
+})
+
 test('feedback: a bug report opens the issue form with the diagnostics filled in', () => {
     const url = new URL(issueUrl('bug', 'IT Job Radar 0.4.6\nLast run: never'))
     assert.equal(url.origin + url.pathname, 'https://github.com/Bezvra/job-radar/issues/new')

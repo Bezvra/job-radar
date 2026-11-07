@@ -1,16 +1,20 @@
 import type { Job, Settings } from './types'
 
+interface Run {
+    at: string
+    results: { name: string; ok: boolean; count: number; error?: string }[]
+    newRelevant: number
+}
+
 export interface DiagnosticsInput {
     version: string
     userAgent: string
     browserLanguage: string
     settings: Settings
     jobs: Record<string, Job>
-    lastRun: {
-        at: string
-        results: { name: string; ok: boolean; count: number; error?: string }[]
-        newRelevant: number
-    } | null
+    lastRun: Run | null
+    /** The latest run with a failed source; shown when it isn't the last run */
+    lastFailedRun?: Run | null
     alarm: { scheduledTime: number; periodInMinutes?: number } | null
     paused?: boolean
     now?: Date
@@ -25,6 +29,10 @@ export function diagnostics(d: DiagnosticsInput): string {
     const s = d.settings
     const now = d.now ?? new Date()
     const minutes = (ms: number) => `${Math.round(ms / 60_000)} min`
+    const ago = (at: string) => `${minutes(now.getTime() - Date.parse(at))} ago`
+    const results = (run: Run) =>
+        run.results.map((r) => `  ${r.ok ? 'ok ' : 'ERR'} ${r.name}: ${r.count}${r.error ? ` (${r.error})` : ''}`)
+    const failed = d.lastFailedRun && d.lastFailedRun.at !== d.lastRun?.at ? d.lastFailedRun : null
     const byStatus: Record<string, number> = {}
     for (const j of Object.values(d.jobs)) byStatus[j.status] = (byStatus[j.status] ?? 0) + 1
 
@@ -49,11 +57,10 @@ export function diagnostics(d: DiagnosticsInput): string {
         ...s.sources.map((x) => `  ${x.enabled ? '+' : '-'} ${x.name}: ${x.url}${x.fetchPages ? ' [pages]' : ''}`),
         '',
         d.lastRun
-            ? `Last run: ${d.lastRun.at} (${minutes(now.getTime() - Date.parse(d.lastRun.at))} ago), ${d.lastRun.newRelevant} new relevant`
+            ? `Last run: ${d.lastRun.at} (${ago(d.lastRun.at)}), ${d.lastRun.newRelevant} new relevant`
             : 'Last run: never',
-        ...(d.lastRun?.results ?? []).map(
-            (r) => `  ${r.ok ? 'ok ' : 'ERR'} ${r.name}: ${r.count}${r.error ? ` (${r.error})` : ''}`,
-        ),
+        ...(d.lastRun ? results(d.lastRun) : []),
+        ...(failed ? [`Last failed run: ${failed.at} (${ago(failed.at)})`, ...results(failed)] : []),
         '',
         `Jobs: ${Object.keys(d.jobs).length} (${
             Object.entries(byStatus)

@@ -177,7 +177,7 @@ async function pollTelegram(): Promise<void> {
 /** A hung request would hold the refresh (and every later one) until Chrome kills the worker */
 const FETCH_TIMEOUT = 30_000
 
-/** Before retrying a request that got no response at all */
+/** Before retrying a request that got no response or timed out */
 const RETRY_PAUSE = 5000
 
 /** How long a refresh waits for the network to come back, in 1s checks */
@@ -193,16 +193,29 @@ async function waitOnline(): Promise<void> {
         await new Promise((r) => setTimeout(r, 1000))
 }
 
+/** No response at all ("Failed to fetch"), or none within FETCH_TIMEOUT (the request or reading its body) */
+const isNetworkError = (e: unknown) =>
+    e instanceof TypeError || (e as { name?: string } | null)?.name === 'TimeoutError' // a DOMException
+
 /**
- * Fetch a feed, once more after a network error ("Failed to fetch": no response, e.g. the network not back yet on wake
- * from sleep, or a dropped connection). HTTP errors and timeouts aren't retried.
+ * A feed's text, fetched once more after a network error or a timeout: right after wake from sleep the browser may
+ * say it's online while requests are refused or hang until the timeout. An HTTP error (the site answered) isn't
+ * retried.
  */
-async function fetchFeed(url: string): Promise<Response> {
-    const get = () => fetch(url, { credentials: 'omit', cache: 'no-store', signal: AbortSignal.timeout(FETCH_TIMEOUT) })
+async function fetchFeed(url: string): Promise<string> {
+    const get = async () => {
+        const res = await fetch(url, {
+            credentials: 'omit',
+            cache: 'no-store',
+            signal: AbortSignal.timeout(FETCH_TIMEOUT),
+        })
+        if (!res.ok) throw new Error(`HTTP ${res.status}`)
+        return res.text()
+    }
     try {
         return await get()
     } catch (e) {
-        if (!(e instanceof TypeError)) throw e
+        if (!isNetworkError(e)) throw e
         await new Promise((r) => setTimeout(r, RETRY_PAUSE))
         await waitOnline()
         return get()
@@ -273,9 +286,7 @@ async function refresh(): Promise<RunLog> {
     // The pages refuse to save more; settings from before that limit are cut here
     for (const src of settings.sources.filter((s) => s.enabled).slice(0, MAX_SOURCES)) {
         try {
-            const res = await fetchFeed(src.url)
-            if (!res.ok) throw new Error(`HTTP ${res.status}`)
-            const xml = await res.text()
+            const xml = await fetchFeed(src.url)
             const { added, count } = mergeFeed(jobs, xml, src.id, settings)
             relevant.push(...added.filter((j) => isRelevant(j, settings)))
             log.newRelevant = relevant.length

@@ -8,11 +8,13 @@ import {
     network,
     networkErrors,
     notifications,
+    offline,
     posted,
     reset,
     responses,
     send,
     store,
+    timedOut,
 } from './chrome'
 import '../src/background'
 import { MAX_SOURCES } from '../src/core/defaults'
@@ -80,27 +82,39 @@ test('worker: fetches no more than MAX_SOURCES enabled feeds, even from older se
     assert.ok(!fetched.includes(source('off').url))
 })
 
-test('worker: a feed that gets no response is tried once more', async () => {
-    store.settings = settings({ sources: [source('React.js')] })
+test('worker: a feed that gets no response or times out is tried once more', async () => {
+    store.settings = settings({ sources: [source('React.js'), source('JavaScript')] })
     responses.set(source('React.js').url, feed(1))
-    networkErrors.set(source('React.js').url, 1)
+    responses.set(source('JavaScript').url, feed(2))
+    networkErrors.set(source('React.js').url, [offline()])
+    networkErrors.set(source('JavaScript').url, [timedOut()])
 
     const log = await send({ type: 'refresh' })
 
     assert.deepEqual(log.results[0], { sourceId: 'React.js', name: 'React.js', ok: true, count: 1 })
+    assert.deepEqual(log.results[1], { sourceId: 'JavaScript', name: 'JavaScript', ok: true, count: 1 })
     assert.equal(fetched.filter((u) => u === source('React.js').url).length, 2)
+    assert.equal(fetched.filter((u) => u === source('JavaScript').url).length, 2)
 })
 
-test('worker: a feed failing twice is reported; HTTP errors aren’t retried', async () => {
+test('worker: a feed failing twice is reported and kept as the last failed run; HTTP errors aren’t retried', async () => {
     store.settings = settings({ sources: [source('React.js'), source('JavaScript')] })
-    networkErrors.set(source('React.js').url, 2)
+    networkErrors.set(source('React.js').url, [offline(), timedOut()])
 
     const log = await send({ type: 'refresh' })
 
     assert.equal(log.results[0].ok, false)
-    assert.match(log.results[0].error, /Failed to fetch/)
+    assert.match(log.results[0].error, /TimeoutError/)
     assert.equal(log.results[1].error, 'Error: HTTP 404')
     assert.equal(fetched.filter((u) => u === source('JavaScript').url).length, 1)
+    assert.deepEqual(store.lastFailedRun, log)
+
+    // A good run replaces the last run, not the last failed one
+    store.settings = settings({ sources: [source('React.js')] })
+    responses.set(source('React.js').url, feed(1))
+    const good = await send({ type: 'refresh' })
+    assert.equal((store.lastRun as { at: string }).at, good.at)
+    assert.deepEqual(store.lastFailedRun, log)
 })
 
 test('worker: a refresh waits while the browser is offline, and gives up after a minute', async () => {
