@@ -155,7 +155,10 @@ test('job pages are checked only for sources that allow it', () => {
 
 test('extracts company from JSON-LD JobPosting', () => {
     const html = `<html><script type="application/ld+json">{"@context":"https://schema.org/","@type":"JobPosting","hiringOrganization":{"@type":"Organization","name":" Innotechfy "}}</script></html>`
-    assert.deepEqual(parseJobPosting(html), { company: 'Innotechfy' })
+    assert.deepEqual(parseJobPosting(html), { company: 'Innotechfy', remote: false })
+    // Djinni's RSS doesn't say a job is remote, its page does (the Limeup job: no "remote" in the text)
+    const remote = html.replace('"@type":"JobPosting"', '"@type":"JobPosting","jobLocationType":"TELECOMMUTE"')
+    assert.deepEqual(parseJobPosting(remote), { company: 'Innotechfy', remote: true })
     assert.equal(parseJobPosting('<script type="application/ld+json">{bad</script>'), null)
 })
 

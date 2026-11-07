@@ -21,7 +21,7 @@ import {
 } from './core/collect'
 import { importJobs } from './core/backup'
 import { MAX_SOURCES, MIN_INTERVAL_HOURS } from './core/defaults'
-import { parseJobPosting } from './core/jobPage'
+import { parseJobPosting, withRemote } from './core/jobPage'
 import { upgradeRules } from './core/profile'
 import { resolveLocale, setLocale, t } from './i18n'
 import {
@@ -245,7 +245,9 @@ async function checkJobPages(jobs: Record<string, Job>, settings: Settings): Pro
         try {
             const res = await fetch(job.url, { credentials: 'omit', signal: AbortSignal.timeout(FETCH_TIMEOUT) })
             if (!res.ok) continue // e.g. rate limited: retry next run
-            job.company = parseJobPosting(await res.text())?.company ?? ''
+            const posting = parseJobPosting(await res.text())
+            job.company = posting?.company ?? ''
+            if (posting?.remote) job.description = withRemote(job.description) // rescored with the others at the end
             job.pageChecked = true
         } catch {
             // network error: retry next run

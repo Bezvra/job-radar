@@ -74,6 +74,30 @@ test('worker: a refresh fetches the feeds and the job pages, then saves the jobs
     assert.equal(notifications.length, 1, 'senior React remote jobs are relevant')
 })
 
+test('worker: a job page that says remote makes the job remote, the feed text alone doesn’t', async () => {
+    store.settings = settings()
+    // The Limeup job on Djinni: no "remote" in the feed, TELECOMMUTE on the page; a salary leads the description
+    const url = source('React.js').url
+    responses.set(url, feed(1, 2).replaceAll('React, TypeScript. Remote', '$5000. React, TypeScript'))
+    responses.set(
+        'https://djinni.co/jobs/1-react',
+        `<script type="application/ld+json">{"@type":"JobPosting","jobLocationType":"TELECOMMUTE","hiringOrganization":{"name":"Limeup"}}</script>`,
+    )
+    responses.set('https://djinni.co/jobs/2-react', page('Office Co'))
+
+    await send({ type: 'refresh' })
+
+    const [remote, office] = Object.values(jobs())
+    assert.ok(remote.reasons.some((r) => r.label === 'Remote'))
+    assert.ok(!office.reasons.some((r) => r.label === 'Remote'))
+    assert.equal(remote.salary?.min, 5000, 'the salary still leads the description')
+    // A second page check doesn't add it again
+    remote.pageChecked = false
+    remote.company = ''
+    await send({ type: 'refresh' })
+    assert.equal(jobs()[remote.id].description.match(/Remote/g)?.length, 1)
+})
+
 test('worker: fetches no more than MAX_SOURCES enabled feeds, even from older settings', async () => {
     const sources = Array.from({ length: MAX_SOURCES + 3 }, (_, i) => source(`k${i}`))
     store.settings = settings({ sources: [{ ...source('off'), enabled: false }, ...sources] })
