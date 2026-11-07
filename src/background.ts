@@ -283,15 +283,14 @@ async function refresh(): Promise<RunLog> {
     const jobs = await getJobs()
     const log: RunLog = { at: new Date().toISOString(), results: [], newRelevant: 0 }
 
-    const relevant: Job[] = []
+    const addedIds: string[] = []
     await waitOnline()
     // The pages refuse to save more; settings from before that limit are cut here
     for (const src of settings.sources.filter((s) => s.enabled).slice(0, MAX_SOURCES)) {
         try {
             const xml = await fetchFeed(src.url)
             const { added, count } = mergeFeed(jobs, xml, src.id, settings)
-            relevant.push(...added.filter((j) => isRelevant(j, settings)))
-            log.newRelevant = relevant.length
+            addedIds.push(...added.map((j) => j.id))
             log.results.push({ sourceId: src.id, name: src.name, ok: true, count })
             if (count === 0) log.results[log.results.length - 1].error = t.run.emptyFeed
         } catch (e) {
@@ -303,10 +302,7 @@ async function refresh(): Promise<RunLog> {
     await checkJobPages(jobs, settings)
     // Companies found on job pages can reveal copies across sites; a merged-away copy isn't news
     const merged = new Set(mergeDuplicates(jobs))
-    if (merged.size) {
-        relevant.splice(0, relevant.length, ...relevant.filter((j) => !merged.has(j.id)))
-        log.newRelevant = relevant.length
-    }
+    let relevant: Job[] = []
     await writeJobs(async () => {
         // What changed while this ran: statuses set in the report, settings saved (rules, sources)
         for (const [id, status] of statusesDuringRefresh) if (jobs[id]) jobs[id].status = status
@@ -315,6 +311,12 @@ async function refresh(): Promise<RunLog> {
         applyLocale(latest)
         prune(jobs, latest.sources)
         rescoreAll(jobs, latest)
+        // Decided on the final scores: a job page can change one (Djinni's remote flag)
+        relevant = addedIds
+            .filter((id) => !merged.has(id))
+            .map((id) => jobs[id])
+            .filter((j) => j && isRelevant(j, latest))
+        log.newRelevant = relevant.length
         await saveJobs(jobs)
     })
     await saveLastRun(log)

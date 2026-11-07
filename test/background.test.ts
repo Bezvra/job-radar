@@ -75,7 +75,8 @@ test('worker: a refresh fetches the feeds and the job pages, then saves the jobs
 })
 
 test('worker: a job page that says remote makes the job remote, the feed text alone doesn’t', async () => {
-    store.settings = settings()
+    // 62 from the feed text, 77 with the page's remote flag
+    store.settings = settings({ applyThreshold: 70 })
     // The Limeup job on Djinni: no "remote" in the feed, TELECOMMUTE on the page; a salary leads the description
     const url = source('React.js').url
     responses.set(url, feed(1, 2).replaceAll('React, TypeScript. Remote', '$5000. React, TypeScript'))
@@ -85,10 +86,12 @@ test('worker: a job page that says remote makes the job remote, the feed text al
     )
     responses.set('https://djinni.co/jobs/2-react', page('Office Co'))
 
-    await send({ type: 'refresh' })
+    const log = await send({ type: 'refresh' })
 
     const [remote, office] = Object.values(jobs())
     assert.ok(remote.reasons.some((r) => r.label === 'Remote'))
+    assert.equal(log.newRelevant, 1, 'relevance is decided on the score after the page check')
+    assert.equal(notifications.length, 1)
     assert.ok(!office.reasons.some((r) => r.label === 'Remote'))
     assert.equal(remote.salary?.min, 5000, 'the salary still leads the description')
     // A second page check doesn't add it again
