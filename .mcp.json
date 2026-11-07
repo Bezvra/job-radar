@@ -1,0 +1,25 @@
+{
+  "mcpServers": {
+    "chrome-devtools": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "chrome-devtools-mcp@latest",
+        "--isolated",
+        "--categoryExtensions",
+        "--no-usage-statistics",
+        "--no-performance-crux"
+      ],
+      "env": {}
+    },
+    "playwright": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "@playwright/mcp@latest",
+        "--isolated"
+      ],
+      "env": {}
+    }
+  }
+}
