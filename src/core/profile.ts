@@ -85,7 +85,7 @@ const PART_TIME_REST =
  * Part-time: "part-time", "half-time", "20-30 hours per week", "часткова/неповна зайнятість", "неповний робочий день".
  * Not "with part-time UX, QA": those are the colleagues, while "a part-time developer" is the role
  */
-export const PART_TIME_PATTERN = `(?<!\\bwith\\s)part[- ]?time|${PART_TIME_REST}`
+export const PART_TIME_PATTERN = `(?<!\\bwith\\s+)part[- ]?time|${PART_TIME_REST}`
 /** A part-time start that can become full-time, or either one offered: no penalty for someone who wants full-time */
 const OR_FULL_TIME =
     '(\\bto|into|become|\\bor|/)\\s*full[- ]?time|full[- ]?time\\s*(/|or|або|чи)\\s*part|на повн[а-яіїєґ]* (зайнят|ставк|день)'

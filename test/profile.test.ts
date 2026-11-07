@@ -302,7 +302,7 @@ test('part-time: penalized for full-time seekers unless it can grow into full-ti
         '30-40 hours per week',
         // The Modus Soft job on DOU: the colleagues are part-time, the role isn't
         'collaborate with part-time UX, DevOps, QA',
-        'You will work with part-time designers',
+        'You will work with  part-time designers',
     ])
         assert.equal(weight(desc), undefined, desc)
     // The Empat job on DOU: part-time to start, full-time later
