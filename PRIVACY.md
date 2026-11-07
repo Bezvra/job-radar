@@ -14,7 +14,7 @@ Removing the extension deletes all of it. The Backup button on the settings page
 
 ## What the extension sends, and where
 
--   **djinni.co and jobs.dou.ua.** On a schedule (every few hours, as set in the settings), the extension downloads the RSS feeds you chose and, for some Djinni jobs, the job page to read the company name. When you paste a search address in the setup wizard, the feed is downloaded once to count its jobs. These are plain requests without cookies: the sites don't learn who you are, and nothing about you or your CV is included.
+-   **djinni.co and jobs.dou.ua.** On a schedule (every few hours, as set in the settings), the extension downloads the RSS feeds you chose and, for some Djinni jobs, the job page to read the company name and whether the job is remote. When you paste a search address in the setup wizard, the feed is downloaded once to count its jobs. These are plain requests without cookies: the sites don't learn who you are, and nothing about you or your CV is included.
 -   **api.telegram.org**, only if you connect a Telegram bot. The extension sends new matching jobs (title, company, salary, score and link) to your own bot with the token you provided, reads the bot's updates once to find your chat id, and, while the browser is open, keeps reading them for presses of the buttons under each job (only presses from your own chat are acted on).
 
 Nothing is sent to any other address.
@@ -26,6 +26,7 @@ When you click the extension's icon, it reads the page open in that tab (the job
 ## Permissions
 
 -   `storage`: keep your settings and jobs in this browser.
+-   `unlimitedStorage`: lift Chrome's 10 MB limit on that local storage, so a long list of jobs with full descriptions doesn't stop the extension from saving new ones. It is still only on your computer, and jobs older than 45 days are still removed.
 -   `alarms`: check the feeds on the schedule you set.
 -   `notifications`: tell you about new matching jobs (can be turned off).
 -   `activeTab` and `scripting`: read the job in your current tab when you click the icon.
