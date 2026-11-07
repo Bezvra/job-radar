@@ -293,9 +293,17 @@ test('part-time: penalized for full-time seekers unless it can grow into full-ti
         'Часткова зайнятість, віддалено',
         'неповний робочий день',
         '20 годин на тиждень',
+        'We are hiring a part-time developer',
     ])
         assert.equal(weight(desc), -20, desc)
-    for (const desc of ['Full-time, 40 hours per week', 'React, remote', '30-40 hours per week'])
+    for (const desc of [
+        'Full-time, 40 hours per week',
+        'React, remote',
+        '30-40 hours per week',
+        // The Modus Soft job on DOU: the colleagues are part-time, the role isn't
+        'collaborate with part-time UX, DevOps, QA',
+        'You will work with part-time designers',
+    ])
         assert.equal(weight(desc), undefined, desc)
     // The Empat job on DOU: part-time to start, full-time later
     assert.equal(
@@ -303,6 +311,22 @@ test('part-time: penalized for full-time seekers unless it can grow into full-ti
         undefined,
     )
     assert.equal(weight('Part-time / full-time'), undefined)
+    // A rule saved before that learns it on update
+    const saved = buildRules(profile).map((r) =>
+        r.labelKey?.id === 'partTime'
+            ? {
+                  ...r,
+                  pattern:
+                      'part[- ]?time|half[- ]time|\\b(1\\d|2\\d|3[0-5])(\\s*(-|–|—|to|до)\\s*(1\\d|2\\d|3[0-5]))?\\s*(hours?|hrs|h|годин[а-яіїєґ]*|часов)\\s*(a|per|/|на|в)\\s*(week|wk|тиждень|неделю)|частков[а-яіїєґ]* зайнят|частичн[а-я]* занят|неповн[а-яіїєґ]* (зайнят|робоч)|неполн[а-я]* (занят|рабоч)',
+              }
+            : r,
+    )
+    const upgradedPartTime = upgradeRules(saved)!
+    assert.ok(upgradedPartTime, 'the old pattern is upgraded')
+    const partTimeReason = (desc: string) =>
+        scoreJob('Senior React Developer', desc, upgradedPartTime).reasons.find((r) => r.label === 'Part-time')
+    assert.equal(partTimeReason('collaborate with part-time UX, DevOps, QA'), undefined)
+    assert.equal(partTimeReason('Part-time contract')?.weight, -20)
     assert.equal(weight('Part-time contract', { ...profile, employment: 'part' }), 10)
     assert.equal(weight('Part-time contract', { ...profile, employment: 'any' }), undefined)
     // Either way the choice is a rule on the Filters tab

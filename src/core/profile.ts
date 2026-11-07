@@ -77,11 +77,15 @@ export const AI_TOOLS_PATTERN =
 export const PART_TIME_WEIGHT = { full: -20, part: 10 }
 /** 10–35 hours a week, alone or as a range: "20-30 hours per week", "до 20 годин на тиждень"; 40 is full-time */
 const WEEK_HOURS = '(1\\d|2\\d|3[0-5])'
-/** Part-time: "part-time", "half-time", "20-30 hours per week", "часткова/неповна зайнятість", "неповний робочий день" */
-export const PART_TIME_PATTERN =
-    'part[- ]?time|half[- ]time|' +
+const PART_TIME_REST =
+    'half[- ]time|' +
     `\\b${WEEK_HOURS}(\\s*(-|–|—|to|до)\\s*${WEEK_HOURS})?\\s*(hours?|hrs|h|годин[а-яіїєґ]*|часов)\\s*(a|per|/|на|в)\\s*(week|wk|тиждень|неделю)|` +
     'частков[а-яіїєґ]* зайнят|частичн[а-я]* занят|неповн[а-яіїєґ]* (зайнят|робоч)|неполн[а-я]* (занят|рабоч)'
+/**
+ * Part-time: "part-time", "half-time", "20-30 hours per week", "часткова/неповна зайнятість", "неповний робочий день".
+ * Not "with part-time UX, QA": those are the colleagues, while "a part-time developer" is the role
+ */
+export const PART_TIME_PATTERN = `(?<!\\bwith\\s)part[- ]?time|${PART_TIME_REST}`
 /** A part-time start that can become full-time, or either one offered: no penalty for someone who wants full-time */
 const OR_FULL_TIME =
     '(\\bto|into|become|\\bor|/)\\s*full[- ]?time|full[- ]?time\\s*(/|or|або|чи)\\s*part|на повн[а-яіїєґ]* (зайнят|ставк|день)'
@@ -154,6 +158,7 @@ function legacyLabelKey(label: string): Rule['labelKey'] {
 const PATTERN_FIXES: Record<string, string> = {
     'office|офіс|офис|on-?site': OFFICE_WORD,
     'office|офіс|офис|hybrid|гібрид|гибрид|on-?site': OFFICE_PATTERN,
+    [`part[- ]?time|${PART_TIME_REST}`]: PART_TIME_PATTERN,
 }
 
 /**
