@@ -1,3 +1,4 @@
+import { MAX_DESCRIPTION } from './defaults'
 import { stripHtml } from './rss'
 
 /**
@@ -182,7 +183,6 @@ export interface PageJob {
     guessed: boolean
 }
 
-const MAX_DESCRIPTION = 8000
 /** A shorter selection is likely a stray click-and-drag, not the description */
 export const MIN_SELECTION = 100
 

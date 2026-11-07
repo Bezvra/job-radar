@@ -1,3 +1,4 @@
+import { MAX_DESCRIPTION } from './defaults'
 import type { RawItem } from './types'
 
 export interface Normalized {
@@ -57,7 +58,7 @@ export function normalize(item: RawItem): Normalized {
         title,
         company,
         url,
-        description: ((location ? `Локація: ${location}\n` : '') + item.description).slice(0, 4000),
+        description: ((location ? `Локація: ${location}\n` : '') + item.description).slice(0, MAX_DESCRIPTION),
         publishedAt: date && !isNaN(date.getTime()) ? date.toISOString() : null,
     }
 }

@@ -37,6 +37,12 @@ test('DOU location from title counts for scoring', () => {
     assert.ok(scoreJob(n.title, n.description, RULES).reasons.some((r) => r.label === 'Remote'))
 })
 
+test('a long description keeps the requirements near its end', () => {
+    // The Vodworks job on DOU: 5400 chars, the English level comes after 4000
+    const item = { ...parseRss(DOU)[0], description: 'x'.repeat(4400) + ' Advanced English proficiency (C1 or above)' }
+    assert.ok(normalize(item).description.endsWith('(C1 or above)'))
+})
+
 test('strips tracking params from URL', () => {
     assert.equal(normalize(parseRss(DJINNI)[0]).url, 'https://djinni.co/jobs/812345-senior-react-developer')
 })
